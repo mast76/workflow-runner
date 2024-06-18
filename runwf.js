@@ -49,25 +49,39 @@ function main() {
         let ymlFile = process.argv[2];
         if(ymlFile && (ymlFile.toLowerCase().endsWith('.yml') || ymlFile.toLowerCase().endsWith('.yaml'))) {
             const yamlData = yaml.load(fs.readFileSync(ymlFile, 'utf8'))
-            let globalShell = yamlData.defaults.run.shell
+            let globalShell = yamlData.defaults?.run?.shell
             globalShell = new Shell(globalShell)
             let globalWDir=yamlData.defaults['working-directory']
+            let globalEnv=yamlData.env
             let jobs = Object.keys(yamlData.jobs).map((key) => [key, yamlData.jobs[key]])
+
 
             jobs?.forEach(j => {
                 console.log(j[0])
                 let job = j[1]
-                let jobShell=job.defaults.run.shell
+                let jobShell=job.defaults?.run?.shell
                 jobShell = new Shell(jobShell,globalShell.name)
                 let jobWDir=job.defaults['working-directory'] ?? globalWDir
+                let jobEnv=job.env
+                if(jobEnv && globalEnv) {
+                    jobEnv = Object.assign(globalEnv,jobEnv)
+                } else if (globalEnv) {
+                    jobEnv = globalEnv
+                }
                 if(job['runs-on']?.toLowerCase().startsWith('windows')) {
-                    let i = 1;
-                    job.steps.forEach(step => {
+                    job.steps?.forEach(step => {
                         console.log(step.name)
                         let stepWDir=step['working-directory'] ?? jobWDir
-
+                        
+                        let stepEnv=step.env
+                        if(jobEnv && stepEnv) {
+                            stepEnv = Object.assign(jobEnv,stepEnv)
+                        } else if (jobEnv) {
+                            stepEnv = jobEnv
+                        }
+                        
                         if(step.run) {
-                            let stepShell=new Shell(step.shell,jobShell.name, step.env)
+                            let stepShell=new Shell(step.shell,jobShell.name, stepEnv)
                             exec(step.run,{env: stepShell.env, stdio: 'inherit', cwd: stepWDir, shell:stepShell.name})
                         }
                     })

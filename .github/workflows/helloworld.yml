@@ -1,12 +1,15 @@
 name: hello-world
 on: push
-
+env:
+  msg: 'Should not be printed'
 defaults:
   run:
     shell: bash
 jobs:
   my-job:
     runs-on: windows-latest
+    env:
+      msg: 'Should not be printed'
     defaults:
       run:
         shell: pwsh
