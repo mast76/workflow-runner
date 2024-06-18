@@ -1,0 +1,34 @@
+name: hello-world
+on: push
+
+defaults:
+  run:
+    shell: bash
+jobs:
+  my-job:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: HW-CMD
+        env: 
+          msg: 'Hello World from CMD'
+        run: |
+          echo %msg%!
+          echo Line two
+        shell: cmd
+      - name: HW-PWSH
+        env: 
+          msg: 'Hello World from Powershell'
+        run: Write-Host "${Env:msg} $($host.version.Major).$($host.version.Minor)!"
+        shell: powershell
+      - name: HW-PWSH
+        env: 
+          msg: 'Hello World from Powershell'
+        run: Write-Host "${Env:msg} $($host.version.Major).$($host.version.Minor)!"
+      - name: HW-BASH
+        env: 
+          msg: 'Hello World from BASH'
+        run: echo ${msg}!
+        shell: bash
