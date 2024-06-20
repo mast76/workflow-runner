@@ -80,10 +80,6 @@ function injectSystemEnv(str, localEnv) {
             key = key.substring(4)
             val = localEnv?localEnv[key]:undefined
         }
-        if(key?.startsWith('env[')) {
-            key = key.substring(4,key.length-1)
-            val = localEnv?localEnv[key]:undefined
-        }
         if(val){
             str = str.replace(s,val)
         }
