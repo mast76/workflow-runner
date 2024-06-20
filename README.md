@@ -18,13 +18,16 @@ Currently written in JavaScript planed to be rewritten in Typescript.
 
 ### Implements
 - Running of shell scripts in CMD, Powershell, and BASH
-- Env
+- env context in scripts
 
 ## Missing (but within current scope)
 - Uses
 - With
 - Concurrency
-- ${{ variables }}
+- ${{ variables }} partly 
+- conditions (if)
+- secrets
+- python
 
 ## Alternatives
 ACT: https://github.com/nektos/act

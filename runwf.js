@@ -1,12 +1,15 @@
 const fs = require('fs')
-const yaml = require('js-yaml')
+const path = require('path'); 
+const yaml = require('js-yaml');
+const { env } = require('process');
 var exec = require('child_process').execFileSync
 
 
-// 
 class Shell {
     name
     env
+    fileExt
+    pathSeparator
     constructor(shell, defaultShell = 'pwsh', env = new Map()) {
         this.env = env
         switch(shell?.toLowerCase())
@@ -29,7 +32,21 @@ class Shell {
         
         switch(this.name)
         {
+            case 'cmd':
+                this.fileExt ='.cmd'
+                this.pathSeparator='\\'
+                break
+            case 'pwsh':
+                this.fileExt='.ps1'
+                this.pathSeparator='\\'
+                break
+            case 'powershell':
+                this.fileExt='.ps1'
+                this.pathSeparator='\\'
+                break
             case 'bash': 
+                this.fileExt='.sh'
+                this.pathSeparator='/'
                 if(env) {
                     var extEnv = 'WSLENV: '
                     var keys = Object.keys(env)
@@ -42,7 +59,41 @@ class Shell {
                 break
         }
     }
+
+    fixScript(str) {
+        if('cmd'==this.name){
+            str = '@echo off\n' + str
+        }
+        //console.log(str)
+        return str
+    }
 }
+
+function injectSystemEnv(str, localEnv) {
+    let m = /\${{\s*(\S*)\s*}}/gs
+    let r = /.*\${{\s*(\S*)\s*}}.*/gs
+    let s 
+    str?.match(m)?.forEach(s => {
+        let key = str.replace(r,'$1')
+        var val=''
+        if(key?.startsWith('env.')) {
+            key = key.substring(4)
+            val = localEnv?localEnv[key]:undefined
+        }
+        if(key?.startsWith('env[')) {
+            key = key.substring(4,key.length-1)
+            val = localEnv?localEnv[key]:undefined
+        }
+        if(val){
+            str = str.replace(s,val)
+        }
+    })
+  //  console.log(str)
+    return str
+}
+
+//injectSystemEnv('echo %msg%\necho Line two ${{ USERNAME }}')
+
 
 function main() {
     try {
@@ -54,7 +105,6 @@ function main() {
             let globalWDir=yamlData.defaults['working-directory']
             let globalEnv=yamlData.env
             let jobs = Object.keys(yamlData.jobs).map((key) => [key, yamlData.jobs[key]])
-
 
             jobs?.forEach(j => {
                 console.log(j[0])
@@ -82,7 +132,17 @@ function main() {
                         
                         if(step.run) {
                             let stepShell=new Shell(step.shell,jobShell.name, stepEnv)
-                            exec(step.run,{env: stepShell.env, stdio: 'inherit', cwd: stepWDir, shell:stepShell.name})
+                            let stepRun=injectSystemEnv(step.run,stepEnv)
+                            stepRun = stepShell.fixScript(stepRun)
+                            let tmpDir = fs.mkdtempSync(path.join('.github','temp'))
+                            let tmpFile = path.join(tmpDir,'job' + stepShell.fileExt)
+                            fs.writeFileSync(tmpFile, stepRun);
+                            let execFile = tmpFile;
+                            if('\\' !== stepShell.pathSeparator) {
+                                execFile=execFile.replaceAll('\\',stepShell.pathSeparator)
+                            }
+                            exec(execFile,{env: stepShell.env, stdio: 'inherit', cwd: stepWDir, shell:stepShell.name})
+                            fs.rmSync(tmpDir,{recursive:true})
                         }
                     })
                 } 

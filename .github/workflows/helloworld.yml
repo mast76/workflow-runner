@@ -19,19 +19,25 @@ jobs:
           msg: 'Hello World from CMD'
         run: |
           echo %msg%!
-          echo Line two
+          echo ${{ env.msg }} again
         shell: cmd
       - name: HW-PWSH
         env: 
           msg: 'Hello World from Powershell'
-        run: Write-Host "${Env:msg} $($host.version.Major).$($host.version.Minor)!"
+        run: |
+          Write-Host "${Env:msg} $($host.version.Major).$($host.version.Minor)!"
+          Write-Host "${{ env[msg] }} again"
         shell: powershell
       - name: HW-PWSH
         env: 
           msg: 'Hello World from Powershell'
-        run: Write-Host "${Env:msg} $($host.version.Major).$($host.version.Minor)!"
+        run: |
+          Write-Host "${Env:msg} $($host.version.Major).$($host.version.Minor)!"
+          Write-Host "${{ env.msg }} again}"
       - name: HW-BASH
         env: 
           msg: 'Hello World from BASH'
-        run: echo ${msg}!
+        run: |
+          echo ${msg}!
+          echo ${{ env.msg }} again
         shell: bash
