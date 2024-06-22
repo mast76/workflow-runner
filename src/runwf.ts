@@ -1,8 +1,9 @@
 import * as fs from 'fs'
 import * as path from'path' 
-import * as yaml from 'js-yaml'
 import { execFileSync, ExecFileSyncOptions } from 'child_process'
 import { tmpdir } from 'os';
+const yaml = require('js-yaml')
+
 
 
 enum ShellName {
