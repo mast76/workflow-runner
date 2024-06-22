@@ -37,9 +37,6 @@ class Shell {
                 this.pathSeparator='\\'
                 break
             case 'pwsh':
-                this.fileExt='.ps1'
-                this.pathSeparator='\\'
-                break
             case 'powershell':
                 this.fileExt='.ps1'
                 this.pathSeparator='\\'
@@ -48,7 +45,6 @@ class Shell {
                 this.fileExt='.sh'
                 this.pathSeparator='/'
                 if(env) {
-                    var extEnv = 'WSLENV: '
                     var keys = Object.keys(env)
                     var keysSting = ''
                     keys.forEach(k => {
