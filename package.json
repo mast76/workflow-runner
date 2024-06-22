@@ -1,11 +1,11 @@
 {
   "devDependencies": {
-    "@types/node": "^20.14.2",
     "js-yaml": "^4.1.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5"
   },
   "dependencies": {
+    "@types/node": "^20.14.8",
     "tmp": "^0.2.3"
   }
 }

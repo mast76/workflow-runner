@@ -9,5 +9,6 @@ jobs:
       with:
         node-version: 22
     - run: npm install
-    - run: node runwf.js .github\workflows\helloworld.yml
+    - run: npx tsc  
+    - run: node built\runwf.js .github\workflows\helloworld.yml
             

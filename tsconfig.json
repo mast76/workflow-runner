@@ -1,0 +1,11 @@
+{
+    "compilerOptions": {
+      "outDir": "./built",
+      "allowJs": true,
+      "target": "ES5",
+      "lib":[
+            "ES2021.String"
+        ]
+    },
+    "include": ["./src/**/*"]
+  }
