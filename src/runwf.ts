@@ -2,7 +2,7 @@ import * as fs from 'fs'
 import * as path from'path' 
 import { execFileSync, ExecFileSyncOptions } from 'child_process'
 import { tmpdir } from 'os';
-const yaml = require('js-yaml')
+import * as yaml from 'js-yaml'
 
 
 
@@ -79,12 +79,18 @@ function injectSystemEnv(str, localEnv) {
 
 //injectSystemEnv('echo %msg%\necho Line two ${{ USERNAME }}')
 
+type Data = {
+    defaults: any,
+    jobs : any,
+    env : any
+}
+
 
 function main() {
     try {
         let ymlFile = process.argv[2];
         if(ymlFile && (ymlFile.toLowerCase().endsWith('.yml') || ymlFile.toLowerCase().endsWith('.yaml'))) {
-            const yamlData = yaml.load(fs.readFileSync(ymlFile, 'utf8'))
+            const yamlData = yaml.load(fs.readFileSync(ymlFile, 'utf8')) as Data
             let globalShell = yamlData.defaults?.run?.shell
             globalShell = new Shell(globalShell)
             let globalWDir=yamlData.defaults['working-directory']
