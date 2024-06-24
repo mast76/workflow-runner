@@ -9,5 +9,26 @@
   "dependencies": {
     "@types/js-yaml": "^4.0.9",
     "tmp": "^0.2.3"
-  }
+  },
+  "name": "workflow-runner",
+  "version": "1.0.0",
+  "description": "Imitates GitHub Workflow runner",
+  "main": "built/runfs.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mast76/workflow-runner.git"
+  },
+  "keywords": [
+    "GitHub",
+    "Workflow"
+  ],
+  "author": "mast76",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mast76/workflow-runner/issues"
+  },
+  "homepage": "https://github.com/mast76/workflow-runner#readme"
 }

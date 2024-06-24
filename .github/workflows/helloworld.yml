@@ -33,7 +33,7 @@ jobs:
           msg: 'Hello World from Powershell'
         run: |
           Write-Host "${Env:msg} $($host.version.Major).$($host.version.Minor)!"
-          Write-Host "${{ env.msg }} again}"
+          Write-Host "${{ env.msg }} again"
       - name: HW-BASH
         env: 
           msg: 'Hello World from BASH'

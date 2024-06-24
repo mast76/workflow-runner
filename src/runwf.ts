@@ -3,94 +3,16 @@ import * as path from'path'
 import { execFileSync, ExecFileSyncOptions } from 'child_process'
 import { tmpdir } from 'os';
 import * as yaml from 'js-yaml'
-
-
-
-enum ShellName {
-    cmd = 'cmd',
-    pwsh = 'pwsh',
-    powershell = 'powershell',
-    bash = 'bash'
-}
-
-class Shell {
-    name : ShellName
-    env : any
-    fileExt : string
-    pathSeparator : string
-    constructor(shell : string, defaultShell : ShellName = ShellName.pwsh, env : any = {}) {
-        shell = shell as keyof typeof ShellName
-        this.name = shell?ShellName[shell]:defaultShell
-        this.env = env
-
-        switch(this.name)
-        {
-            case ShellName.cmd:
-                this.fileExt ='.cmd'
-                this.pathSeparator='\\'
-                break
-            case ShellName.pwsh:
-            case ShellName.powershell:
-                this.fileExt='.ps1'
-                this.pathSeparator='\\'
-                break
-            case ShellName.bash: 
-                this.fileExt='.sh'
-                this.pathSeparator='/'
-                if(env) {
-                    var keys = Object.keys(env)
-                    var keysSting = ''
-                    keys.forEach(k => {
-                        keysSting += k + '/u'
-                    })
-                    this.env['WSLENV']=keysSting
-                }
-                break
-        }
-    }
-
-    fixScript(str : string) {
-        if(ShellName.cmd == this.name){
-            str = '@echo off\n' + str
-        }
-        //console.log(str)
-        return str
-    }
-}
-
-function injectSystemEnv(str, localEnv) {
-    let m = /\${{\s*(\S*)\s*}}/gs
-    let r = /.*\${{\s*(\S*)\s*}}.*/gs
-    let s 
-    str?.match(m)?.forEach(s => {
-        let key = str.replace(r,'$1')
-        var val=''
-        if(key?.startsWith('env.')) {
-            key = key.substring(4)
-            val = localEnv?localEnv[key]:undefined
-        }
-        if(val){
-            str = str.replace(s,val)
-        }
-    })
-  //  console.log(str)
-    return str
-}
-
-//injectSystemEnv('echo %msg%\necho Line two ${{ USERNAME }}')
-
-type Data = {
-    defaults: any,
-    jobs : any,
-    env : any
-}
+import { Shell } from './Shell.js';
+import { WorkflowData } from './WorkflowData.js';
+import { injectSystemEnv } from './EnviromentHelper.js';
 
 
 function main() {
     try {
         let ymlFile = process.argv[2];
         if(ymlFile && (ymlFile.toLowerCase().endsWith('.yml') || ymlFile.toLowerCase().endsWith('.yaml'))) {
-            const yamlData = yaml.load(fs.readFileSync(ymlFile, 'utf8')) as Data
+            const yamlData = yaml.load(fs.readFileSync(ymlFile, 'utf8')) as WorkflowData
             let globalShell = yamlData.defaults?.run?.shell
             globalShell = new Shell(globalShell)
             let globalWDir=yamlData.defaults['working-directory']
@@ -125,8 +47,10 @@ function main() {
                             let stepShell=new Shell(step.shell,jobShell.name, stepEnv)
                             let stepRun=injectSystemEnv(step.run,stepEnv)
                             stepRun = stepShell.fixScript(stepRun)
-                            let tempDir = fs.mkdtempSync(path.join('.github','temp'))
+                            let tempDir = fs.mkdtempSync(path.join(tmpdir(),'temp'))
                             let tmpFile = path.join(tempDir,'job' + stepShell.fileExt)
+                            tmpFile = path.relative('.', tmpFile)
+                            
                             fs.writeFileSync(tmpFile, stepRun);
                             let execFile = tmpFile;
                             if('\\' !== stepShell.pathSeparator) {
