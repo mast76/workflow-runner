@@ -1,5 +1,6 @@
 export type WorkflowData = {
-    defaults: any;
-    jobs: any;
-    env: any;
+    name: string
+    defaults: any
+    jobs: any
+    env: any
 };

@@ -2,13 +2,13 @@
   "type": "module",
   "devDependencies": {
     "@types/node": "20.0.0",
-    "js-yaml": "^4.1.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.2"
   },
   "dependencies": {
+    "@ranchonyx/ini-parser": "^1.1.2",
     "@types/js-yaml": "^4.0.9",
-    "tmp": "^0.2.3"
+    "js-yaml": "^4.1.0"
   },
   "name": "workflow-runner",
   "version": "1.0.0",
