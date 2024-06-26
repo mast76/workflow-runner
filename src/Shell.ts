@@ -1,3 +1,5 @@
+import { GitHubEnv } from "./GitHubEnv.js";
+
 export enum ShellName {
     cmd = 'cmd',
     pwsh = 'pwsh',
@@ -6,10 +8,10 @@ export enum ShellName {
 }
 export class Shell {
     name: ShellName;
-    env: any;
+    env: GitHubEnv;
     fileExt: string;
     pathSeparator: string;
-    constructor(shell: string, defaultShell: ShellName = ShellName.pwsh, env: any = {}) {
+    constructor(shell: string, defaultShell: ShellName = ShellName.pwsh, env: GitHubEnv = {} as GitHubEnv) {
         shell = shell as keyof typeof ShellName;
         this.name = shell ? ShellName[shell] : defaultShell;
         this.env = env;
@@ -30,10 +32,18 @@ export class Shell {
                 if (env) {
                     var keys = Object.keys(env);
                     var keysSting = '';
-                    keys.forEach(k => {
-                        keysSting += k + '/u';
+                    keys.forEach((k,i) => {
+                        // avoid having Windows path overwriting Linux path
+                        if( 'PATH' !== k ) {
+                            if(0 !== i ) {
+                                keysSting += ':'
+                            }
+
+                            keysSting += k + '/u'
+                        }
                     });
                     this.env['WSLENV'] = keysSting;
+                    
                 }
                 break;
         }

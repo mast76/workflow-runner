@@ -52,6 +52,8 @@ function main() {
                         } else if (jobEnv) {
                             stepEnv = jobEnv
                         }
+
+                        //console.log('stepEnv: ' + stepEnv.msg)
                         
                         if(step.run) {
                             let stepShell=new Shell(step.shell,jobShell.name, stepEnv)
@@ -67,8 +69,14 @@ function main() {
                                 execFile=execFile.replaceAll('\\',stepShell.pathSeparator)
                             }
 
-                            execFileSync(execFile, {env: stepShell.env, stdio: 'inherit', cwd: stepWDir, shell:stepShell.name.toString()} )
-                            fs.rmSync(tempDir,{recursive:true})
+                            try {
+                                execFileSync(execFile, {env: stepShell.env, stdio: 'inherit', cwd: stepWDir, shell:stepShell.name.toString()} )
+                            } catch (e) {
+                                console.log('script: ' + stepRun )
+                                throw e
+                            } finally {
+                                fs.rmSync(tempDir,{recursive:true})
+                            }
                         }
                     })
                 } 
