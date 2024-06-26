@@ -73,6 +73,12 @@ export function parseKey(key) {
         key = Number.parseInt(key)
     } else if(key?.match(mFlt)) {
         key = Number.parseFloat(key)
+    } else if(key == 'true') {
+        key = true
+    } else if(key == 'false') {
+        key = false
+    } else if(key == 'null') {
+        key = null
     }
 
     return key

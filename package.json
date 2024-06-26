@@ -2,6 +2,7 @@
   "type": "module",
   "devDependencies": {
     "@types/node": "20.0.0",
+    "concurrently": "^8.2.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.2"
   },
@@ -15,7 +16,8 @@
   "description": "Imitates GitHub Workflow runner",
   "main": "built/runfs.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "concurrently --kill-others-on-fail --prefix none npm:test:*", 
+    "test:sw": "node --test test/*"
   },
   "repository": {
     "type": "git",
@@ -30,5 +32,8 @@
   "bugs": {
     "url": "https://github.com/mast76/workflow-runner/issues"
   },
-  "homepage": "https://github.com/mast76/workflow-runner#readme"
+  "homepage": "https://github.com/mast76/workflow-runner#readme",
+  "directories": {
+    "test": "test"
+  }
 }
