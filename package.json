@@ -5,7 +5,7 @@
     "concurrently": "^8.2.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.2",
-    "node-test-github-reporter":"^1.2.0"
+    "@reporters/github":"^1.7.0"
   },
   "dependencies": {
     "@ranchonyx/ini-parser": "^1.1.2",
