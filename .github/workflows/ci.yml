@@ -11,6 +11,6 @@ jobs:
         check-latest: true
     - run: npm install
     - run: npx tsc  
-    - run: node --test test\* --test-reporter=@reporters/github --test-reporter-destination=stdout --test-reporter=spec --test-reporter-destination=stdout
+    - run: node --test test\* --test-reporter=@reporters/github
     - run: node built\runwf.js .github\workflows\helloworld.yml
             
