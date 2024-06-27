@@ -24,10 +24,11 @@ Currently written in JavaScript planed to be rewritten in Typescript.
 - Uses
 - With
 - Concurrency
-- ${{ variables }} partly 
+- ${{ expression }} partly 
 - conditions (if)
 - secrets
 - python
+- reusable workflows
 
 ## Alternatives
 ACT: https://github.com/nektos/act
