@@ -79,7 +79,7 @@ export function replaceEnvVariables(key, localEnv : GitHubEnv) {
     return val
 }
 
-export function parseKey(exp : GitHubEnv) {
+export function parseKey(exp, localEnv : GitHubEnv) {
     exp = exp.trim()
     const mStr1 = /'([^'])'/gi
     const env = /[a-z]+\.[a-z]+/gi
