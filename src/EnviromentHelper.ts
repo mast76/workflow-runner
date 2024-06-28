@@ -56,7 +56,7 @@ export enum GithubContext {
     inputs
 }
 
-export function replaceEnvVariables(key, localEnv : GitHubEnv) {
+export function replaceEnvVariables(key : string, localEnv : GitHubEnv) : string {
             
     let ctx = key.substring(0,key.indexOf('.'))
     //console.log(ctx)
@@ -75,17 +75,17 @@ export function replaceEnvVariables(key, localEnv : GitHubEnv) {
             val = localEnv ? localEnv['RUNNER_' + key] : ''
             break
         default:
-            val = "''"
+            val = ''
     }
-    return val
+    return '"' + val + '"'
 }
 
-export function parseKey(exp, localEnv : GitHubEnv) {
+export function parseKey(exp : string, localEnv : GitHubEnv) : any {
     exp = exp.trim()
     const mStr1 = /'([^'])'/gi
     const env = /[a-z]+\.[a-z]+/gi
     
-    exp = exp.replaceAll("''","'")
+    exp = exp.replaceAll("''","\\'")
     
     exp?.match(mStr1)?.forEach(m => {
         exp = exp.replace(m,'$1')
@@ -96,18 +96,26 @@ export function parseKey(exp, localEnv : GitHubEnv) {
     
     const valid = /^(\w|([<>!'"()\s][=]?)|(-[^=])||(==)|(&&)|(\|\|))*$/g 
 
+    console.log(exp)
     if(valid) {
         exp = eval(exp)
     }
+    console.log(exp)
     return exp
 }
 
-export function replaceExpression(str, localEnv : GitHubEnv) {
+export function replaceExpression(str : any, localEnv : GitHubEnv) : any {
     const m = /\${{([^}]+)}}/gs;
     
     str?.match(m)?.forEach(s => {
-        str = str.replace(m,parseKey(s, localEnv));
+        let pk = parseKey(s.replace(m, '$1' ), localEnv);
+        if(str.trim() === s) {
+            str = pk;
+        } else {
+            str = str.replace(m,pk);
+        }
     });
+
     return str;
 }
 
