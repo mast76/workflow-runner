@@ -96,11 +96,10 @@ export function parseKey(exp : string, localEnv : GitHubEnv) : any {
     
     const valid = /^(\w|([<>!'"()\s][=]?)|(-[^=])||(==)|(&&)|(\|\|))*$/g 
 
-    console.log(exp)
     if(valid) {
         exp = eval(exp)
     }
-    console.log(exp)
+    
     return exp
 }
 
