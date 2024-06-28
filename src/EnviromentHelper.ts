@@ -62,7 +62,8 @@ export function replaceEnvVariables(key, localEnv : GitHubEnv) {
     //console.log(ctx)
 
     key = key.substring(key.indexOf('.')+1)
-
+    let val=''
+    
     switch (ctx) {
         case 'env':
             val = localEnv ? localEnv[key] : ''
