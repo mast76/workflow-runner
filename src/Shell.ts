@@ -29,22 +29,6 @@ export class Shell {
             case ShellName.bash:
                 this.fileExt = '.sh';
                 this.pathSeparator = '/';
-                if (env) {
-                    var keys = Object.keys(env);
-                    var keysSting = '';
-                    keys.forEach((k,i) => {
-                        // avoid having Windows path overwriting Linux path
-                        if( 'PATH' !== k ) {
-                            if(0 !== i ) {
-                                keysSting += ':'
-                            }
-
-                            keysSting += k + '/u'
-                        }
-                    });
-                    this.env['WSLENV'] = keysSting;
-                    
-                }
                 break;
         }
     }

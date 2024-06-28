@@ -2,7 +2,7 @@ import * as fs from 'fs'
 import * as path from'path' 
 import { execFileSync } from 'child_process'
 import * as yaml from 'js-yaml'
-import { Shell } from './Shell.js'
+import { Shell, ShellName } from './Shell.js'
 import { WorkflowData } from './WorkflowData.js'
 import { injectSystemEnv, replaceExpression } from './EnviromentHelper.js'
 
@@ -70,7 +70,8 @@ function main() {
                             }
 
                             try {
-                                execFileSync(execFile, {env: stepShell.env, stdio: 'inherit', cwd: stepWDir, shell:stepShell.name.toString()} )
+                                let shellExec = stepShell.name == ShellName.bash ? "C:/Program Files/Git/bin/bash.exe" : stepShell.name.toString() 
+                                execFileSync(execFile, {env: stepShell.env, stdio: 'inherit', cwd: stepWDir, shell:shellExec} )
                             } catch (e) {
                                 console.log('script: ' + stepRun )
                                 throw e
