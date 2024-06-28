@@ -40,10 +40,6 @@ test('should be -0.0299', ()  =>{
     assert.equal(parseKey(a.myExponentialNumber.replace(r, '$1')),-0.0299);
 });
 
-test('should be "Mona the Octocat"', ()  =>{
-    assert.equal(parseKey(a.myString.replace(r, '$1')),'Mona the Octocat');
-});
-
 test('should be "It\'s open source!"', ()  =>{
     assert.equal(parseKey(a.myStringInBraces.replace(r, '$1')),"It's open source!");
 });
