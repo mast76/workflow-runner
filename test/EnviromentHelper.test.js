@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { parseKey } from '../built/EnviromentHelper.js';
+import { parseKey,replaceExpression } from '../built/EnviromentHelper.js';
 
 const a = {
     myNull: '${{ null }}',
