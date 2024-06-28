@@ -106,8 +106,8 @@ export function replaceExpression(str, localEnv : GitHubEnv) {
     const m = /\${{([^}]+)}}/gs;
     
     str?.match(m)?.forEach(s => {
-        str = str.replace(m,parseKey(s, localEnv))
-    }
+        str = str.replace(m,parseKey(s, localEnv));
+    });
     return str;
 }
 
