@@ -103,7 +103,11 @@ export function parseKey(exp, localEnv : GitHubEnv) {
 }
 
 export function replaceExpression(str, localEnv : GitHubEnv) {
-    str = parseKey(str, localEnv)
+    const m = /\${{([^}]+)}}/gs;
+    
+    str?.match(m)?.forEach(s => {
+        str = str.replace(m,parseKey(s, localEnv))
+    }
     return str;
 }
 
