@@ -47,3 +47,38 @@ test('should be "Mona the Octocat"', ()  =>{
 test('should be "It\'s open source!"', ()  =>{
     assert.equal(parseKey(a.myStringInBraces.replace(r, '$1')),"It's open source!");
 });
+
+// 
+
+test('should be null', ()  =>{
+    assert.equal(replaceExpression(a.myNull),null);
+});
+
+test('should be false', ()  =>{
+    assert.equal(replaceExpression(a.myBoolean),false);
+});
+
+test('should be 711', ()  =>{
+    assert.equal(replaceExpression(a.myIntegerNumber),711);
+});
+
+test('should be -9.2', ()  =>{
+    assert.equal(replaceExpression(a.myFloatNumber),-9.2);
+});
+
+test('should be 255', ()  =>{
+    assert.equal(replaceExpression(a.myHexNumber),255);
+});
+
+test('should be -0.0299', ()  =>{
+    assert.equal(replaceExpression(a.myExponentialNumber),-0.0299);
+});
+
+test('should be "Mona the Octocat"', ()  =>{
+    assert.equal(replaceExpression(a.myString),'Mona the Octocat');
+});
+
+test('should be "It\'s open source!"', ()  =>{
+    assert.equal(replaceExpression(a.myStringInBraces),"It's open source!");
+});
+
