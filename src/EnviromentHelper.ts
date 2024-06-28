@@ -93,7 +93,12 @@ export function parseKey(exp, localEnv : GitHubEnv) {
     exp?.match(env)?.forEach(m =>  {
         exp = exp.replace(m, replaceEnvVariables(m, localEnv))
     })
+    
+    const valid = /^(\w|([<>!'"()\s][=]?)|(-[^=])||(==)|(&&)|(\|\|))*$/g 
 
+    if(valid) {
+        exp = eval(exp)
+    }
     return exp
 }
 
