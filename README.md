@@ -18,17 +18,17 @@ Currently written in JavaScript planed to be rewritten in Typescript.
 
 ### Implements
 - Running of shell scripts in CMD, Powershell, and BASH
-- Expressions, e.g ${{ true || false == ( 1 < 2 ) }}
+- Expressions, e.g. ${{ true || false == ( 1 < 2 ) }}
 - Enviroment context, e.g. ( ${{ env.USERNAME }} and %USERNAME% )
 - GitHub environment context partly, e.g. ${{ github.SERVER_URL}} and %GITHUB_SERVER_URL% 
-- Runner environment context partly e.g. ${{runner.TEMP}} and %RUNNER_TEMP% 
+- Runner environment context partly, e.g. ${{runner.TEMP}} and %RUNNER_TEMP% 
 
 ## Missing (but within current scope)
-- Uses
+- Uses / actions
 - With
 - Concurrency
 - Conditions (if)
-- Secrets and other environment  contexts
+- Secrets and other environment contexts
 - Python
 - Reusable workflows
 
