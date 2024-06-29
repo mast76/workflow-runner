@@ -14,7 +14,6 @@ NodeJs, NPM, Powershell 7 (if pwsh is used by your workflows), WSL (if bash is u
 - Ignores deliberately stuff like 'on push' and 'on schedule' as it is not a part of the intended scope
 
 ## Status
-Currently written in JavaScript planed to be rewritten in Typescript.
 
 ### Implements
 - Running of shell scripts in CMD, Powershell, and BASH
@@ -23,7 +22,7 @@ Currently written in JavaScript planed to be rewritten in Typescript.
 - GitHub environment context partly, e.g. *${{ github.SERVER_URL}}* and *%GITHUB_SERVER_URL%* 
 - Runner environment context partly, e.g. *${{runner.TEMP}}* and *%RUNNER_TEMP%*
 
-## Missing (but within current scope)
+### Missing (but within current scope)
 - Uses / actions
 - With
 - Concurrency
@@ -31,6 +30,21 @@ Currently written in JavaScript planed to be rewritten in Typescript.
 - Secrets and other environment contexts
 - Python
 - Reusable workflows
+
+### Thoughts
+- Linux runner via WSL
+
+## Building
+```pwsh
+    git clone
+    npm install
+    npx tsc
+```
+
+## Running
+```pwsh
+    node built\runwf.js <path to some workflow file>
+```
 
 ## Alternatives
 ACT: https://github.com/nektos/act
