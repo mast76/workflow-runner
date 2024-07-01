@@ -5,7 +5,7 @@ Currently GitHub Workflows cannot be tested before they are commited and pushed 
 Workflow Runner tries to address this bad practice of commiting code (workflows) in an unkown state by allow at least some of it to be tested.
 
 ## Requirements
-NodeJs, NPM, Powershell 7 (if pwsh is used by your workflows), WSL (if bash is used by your workflows)
+NodeJs, NPM, Powershell 7 (if pwsh is used by your workflows), Git (if bash is used by your workflows)
 
 ## Limitations
 - Runs only on Windows
@@ -20,7 +20,7 @@ NodeJs, NPM, Powershell 7 (if pwsh is used by your workflows), WSL (if bash is u
 - Expressions, e.g. *${{ true || false == ( 1 < 2 ) }}*
 - Enviroment context, e.g.  *${{ env.USERNAME }}* and *%USERNAME%*
 - GitHub environment context partly, e.g. *${{ github.SERVER_URL}}* and *%GITHUB_SERVER_URL%* 
-- Runner environment context partly, e.g. *${{runner.TEMP}}* and *%RUNNER_TEMP%*
+- Runner environment context partly, e.g. *${{ runner.TEMP }}* and *%RUNNER_TEMP%*
 
 ### Missing (but within current scope)
 - Uses / actions
@@ -36,7 +36,7 @@ NodeJs, NPM, Powershell 7 (if pwsh is used by your workflows), WSL (if bash is u
 
 ## Building
 ```pwsh
-    git clone
+    git clone https://github.com/mast76/workflow-runner.git
     npm install
     npx tsc
 ```

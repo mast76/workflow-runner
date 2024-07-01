@@ -118,8 +118,7 @@ export function replaceExpression(str : any, localEnv : GitHubEnv) : any {
     return str;
 }
 
-export function injectSystemEnv(globalEnv: any, yamlData: WorkflowData) : GitHubEnv {
-    globalEnv = (globalEnv as GitHubEnv)
+export function injectSystemEnv(globalEnv: GitHubEnv = {} as GitHubEnv, yamlData: WorkflowData) : GitHubEnv {
     globalEnv.CI = 'true'
     globalEnv.GITHUB_ACTOR = globalEnv["USERNAME"]
     globalEnv.GITHUB_ACTOR_ID = globalEnv.GITHUB_ACTOR + '_ID'

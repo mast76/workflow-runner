@@ -1,33 +1,9 @@
+
 {
-  "type": "module",
-  "devDependencies": {
-    "@types/node": "20.0.0",
-    "concurrently": "^8.2.2",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.5.2",
-    "@reporters/github":"^1.7.0"
-  },
-  "dependencies": {
-    "@ranchonyx/ini-parser": "^1.1.2",
-    "@types/js-yaml": "^4.0.9",
-    "js-yaml": "^4.1.0"
-  },
   "name": "workflow-runner",
   "version": "1.0.0",
   "description": "Imitates GitHub Workflow runner",
   "main": "built/runfs.js",
-  "scripts": {
-    "test": "concurrently --kill-others-on-fail --prefix none npm:test:*", 
-    "test:sw": "node --test test/*"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/mast76/workflow-runner.git"
-  },
-  "keywords": [
-    "GitHub",
-    "Workflow"
-  ],
   "author": "mast76",
   "license": "MIT",
   "bugs": {
@@ -35,6 +11,32 @@
   },
   "homepage": "https://github.com/mast76/workflow-runner#readme",
   "directories": {
+    "built": "built",
     "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mast76/workflow-runner.git"
+  },
+  "scripts": {
+    "build": "npx tsc --pretty",
+    "test": "concurrently --kill-others-on-fail --prefix none npm:test:*", 
+    "test:sw": "node --test test/*"
+  },
+  "keywords": [
+    "GitHub",
+    "Workflow"
+  ],
+  "type": "module",
+  "devDependencies": {
+    "@types/node": "20.0.0",
+    "@types/js-yaml": "^4.0.9",
+    "concurrently": "^8.2.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.2",
+    "@reporters/github":"^1.7.0"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0"
   }
 }
