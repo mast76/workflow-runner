@@ -3,17 +3,17 @@ import { WorkflowStep } from "./WorkflowStep";
 export interface WorkflowData {
     name?: string
     defaults?: {
-        "working-directory"?: string
         run?: {
             shell?: string
+            "working-directory"?: string
         }
     }
     jobs?: {
         name?: string
         defaults?: {
-            "working-directory"?: string
             run?: {
                 shell?: string
+                "working-directory"?: string
             }
         }
         env?: any
