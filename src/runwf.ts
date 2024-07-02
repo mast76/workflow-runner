@@ -92,8 +92,8 @@ namespace workflowrunner {
         let globalShell: any = yamlData.defaults?.run?.shell
         globalShell = new Shell(globalShell)
         let globalWDir = '.'
-        if (yamlData.defaults) {
-            yamlData.defaults['working-directory']
+        if (yamlData.defaults?.run) {
+            globalWDir = yamlData.defaults.run['working-directory'] ?? globalWDir
         }
         let globalEnv = yamlData.env
         if (globalEnv) {
@@ -113,8 +113,8 @@ namespace workflowrunner {
             let jobShell = job.defaults?.run?.shell
             jobShell = new Shell(jobShell, globalShell.name)
             let jobWDir = globalWDir
-            if (job.default) {
-                job.default['working-directory'] ?? jobWDir
+            if (job.default?.run) {
+                jobWDir = job.default.run['working-directory'] ?? jobWDir
             }
             let jobEnv = job.env
             if (jobEnv && globalEnv) {
