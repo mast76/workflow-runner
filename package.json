@@ -1,4 +1,3 @@
-
 {
   "name": "workflow-runner",
   "version": "1.0.0",
@@ -20,7 +19,7 @@
   },
   "scripts": {
     "build": "npx tsc --pretty",
-    "test": "concurrently --kill-others-on-fail --prefix none npm:test:*", 
+    "test": "concurrently --kill-others-on-fail --prefix none npm:test:*",
     "test:sw": "node --test test/*"
   },
   "keywords": [
@@ -29,14 +28,16 @@
   ],
   "type": "module",
   "devDependencies": {
-    "@types/node": "20.0.0",
+    "@reporters/github": "^1.7.0",
+    "@types/ini": "^4.1.1",
     "@types/js-yaml": "^4.0.9",
+    "@types/node": "20.0.0",
     "concurrently": "^8.2.2",
     "ts-node": "^10.9.2",
-    "typescript": "^5.5.2",
-    "@reporters/github":"^1.7.0"
+    "typescript": "^5.5.2"
   },
   "dependencies": {
+    "ini": "^4.1.3",
     "js-yaml": "^4.1.0"
   }
 }
