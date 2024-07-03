@@ -8,7 +8,7 @@ export interface WorkflowData {
             "working-directory"?: string
         }
     }
-    jobs?: {
+    jobs?: [{
         name?: string
         defaults?: {
             run?: {
@@ -16,8 +16,9 @@ export interface WorkflowData {
                 "working-directory"?: string
             }
         }
+        needs?: string[]
         env?: any
         steps?: WorkflowStep[]
-    }
+    }]
     env?: any
 };
