@@ -6,10 +6,11 @@ defaults:
   run:
     shell: bash
 jobs:
-  my-job:
+  cmd-out:
     runs-on: windows-latest
     env:
       msg: 'Should not be printed'
+    needs: pwsh-out
     defaults:
       run:
         shell: pwsh
@@ -21,7 +22,15 @@ jobs:
           echo %msg%!
           echo ${{ env.msg }} again
         shell: cmd
-      - name: HW-PWSH
+  pwsh-out:
+    runs-on: windows-latest
+    env:
+      msg: 'Should not be printed'
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: HW-Powershell
         env: 
           msg: 'Hello World from Powershell'
         run: |
@@ -34,7 +43,16 @@ jobs:
         run: |
           Write-Host "${Env:msg} $($host.version.Major).$($host.version.Minor)!"
           Write-Host "${{ env.msg }} again"
-      - name: HW-BASH
+  bash-out:
+    runs-on: windows-latest
+    env:
+      msg: 'Should not be printed'
+    needs: [pwsh-out, cmd-out]
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: HW-BASH  
         env: 
           msg: 'Hello World from BASH'
         run: |
