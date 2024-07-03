@@ -1,0 +1,8 @@
+name: checkout-example
+on: push
+jobs:
+  ci-job:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+            

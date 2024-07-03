@@ -4,17 +4,37 @@ import { execFile, execFileSync, spawn, spawnSync } from 'child_process';
 import * as yaml from 'js-yaml';
 import { Shell, ShellName } from './Shell.js';
 import { WorkflowData } from './WorkflowData.js';
-import { injectSystemEnv, replaceExpression } from './EnviromentHelper.js';
+import { replaceExpression } from './EnviromentHelper.js';
 import { ActionData } from './ActionData.js';
 import { GitHubEnv } from './GitHubEnv.js';
 import { WorkflowStep } from './WorkflowStep.js';
+import { tmpdir } from 'os';
 
 export class WorkflowController {
 
-    workflowTmpDir;
+    workflowTmpDir: string;
+    repositoy: string;
 
-    constructor(workflowTmpDir) {
+    constructor(workflowTmpDir: string, repositoy: string) {
         this.workflowTmpDir = workflowTmpDir;
+        this.repositoy = repositoy;
+    }
+    
+    injectSystemEnv(globalEnv: GitHubEnv = {} as GitHubEnv, yamlData: WorkflowData) : GitHubEnv {
+        globalEnv.CI = 'true';
+        globalEnv.GITHUB_ACTOR = globalEnv["USERNAME"];
+        globalEnv.GITHUB_ACTOR_ID = globalEnv.GITHUB_ACTOR + '_ID';
+        globalEnv.GITHUB_API_URL = 'https://api.github.com';
+        globalEnv.GITHUB_GRAPHQL_URL = 'https://api.github.com/graphql';
+        globalEnv.GITHUB_REPOSITORY = this.repositoy;
+        globalEnv.GITHUB_SERVER_URL = 'https://github.com';
+        globalEnv.GITHUB_WORKFLOW = yamlData.name;
+        globalEnv.GITHUB_WORKSPACE = path.join(this.workflowTmpDir, 'work');
+        globalEnv.RUNNER_ARCH = process.arch;
+        globalEnv.RUNNER_OS = 'Windows';
+        globalEnv.RUNNER_NAME = globalEnv['COMPUTERNAME'];
+        globalEnv.RUNNER_TEMP = tmpdir();
+        return globalEnv;
     }
 
     stepRun(step: any, jobShell?: any, stepEnv?: GitHubEnv, stepWDir?: any) {
@@ -44,9 +64,9 @@ export class WorkflowController {
         if (!fs.existsSync(actionPath)) {
             const uses = callingStep.uses.split('@');
             if (uses[1]) {
-                execFileSync('git', ['clone', '--depth', '1', '--branch', uses[1], '--single-branch', stepEnv.GITHUB_SERVER_URL + '/' + uses[0] + '.git', callingStep.uses], { stdio:'inherit',  cwd: this.workflowTmpDir, shell: true });
+                execFileSync('git', ['-c', 'advice.detachedHead=false', 'clone', '--depth', '1', '--branch', uses[1], '--single-branch', stepEnv.GITHUB_SERVER_URL + '/' + uses[0] + '.git', callingStep.uses], { stdio:'inherit',  cwd: this.workflowTmpDir, shell: true });
             } else {
-                execFileSync('git', ['clone', '--depth', '1', '--single-branch', stepEnv.GITHUB_SERVER_URL + '/' + uses[0] + '.git', callingStep.uses], { stdio:'inherit', cwd: this.workflowTmpDir, shell: true });
+                execFileSync('git', ['-c', 'advice.detachedHead=false', 'clone', '--depth', '1', '--single-branch', stepEnv.GITHUB_SERVER_URL + '/' + uses[0] + '.git', callingStep.uses], { stdio:'inherit', cwd: this.workflowTmpDir, shell: true });
             }
         }
 
@@ -61,7 +81,14 @@ export class WorkflowController {
             } else if (yamlData.runs?.using?.match('node')) {
                 const main = yamlData.runs?.main;
 
-                const stepWith = Object.fromEntries(Object.keys(callingStep.with).map((key) => ['INPUT_' + key, callingStep.with[key]]));
+                let stepWith = Object.fromEntries(Object.keys(callingStep.with??{}).map((key) => ['INPUT_' + key, callingStep.with[key]]));
+                
+                stepWith.GITHUB_WORKSPACE = stepEnv.GITHUB_WORKSPACE;
+                stepWith.GITHUB_REPOSITORY = stepEnv.GITHUB_REPOSITORY;
+
+                if(!fs.existsSync(stepWith.GITHUB_WORKSPACE)) {
+                    fs.mkdirSync(stepWith.GITHUB_WORKSPACE, {recursive: true});
+                }
 
                 if (main) {
                     spawnSync(process.argv[0], [path.join(actionPath, '/', main)], { env: stepWith, stdio: 'inherit', cwd: stepWDir });
@@ -136,7 +163,7 @@ export class WorkflowController {
             globalEnv = process.env;
         }
 
-        globalEnv = injectSystemEnv(globalEnv, yamlData);
+        globalEnv = this.injectSystemEnv(globalEnv, yamlData);
         
         let jobs = Object.keys(yamlData.jobs).map(key => [key, yamlData.jobs[key]]);
 
