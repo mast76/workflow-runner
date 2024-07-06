@@ -1,6 +1,4 @@
 import { GitHubEnv } from "./GitHubEnv";
-import { WorkflowData } from './WorkflowData.js'
-import { tmpdir } from 'os'
 
 /**
  * https://docs.github.com/en/actions/learn-github-actions/contexts
@@ -56,7 +54,8 @@ export enum GithubContext {
     inputs
 }
 
-export function replaceEnvVariables(key : string, localEnv : GitHubEnv) : string {
+export function replaceEnvVariables(key : string, localEnv?: GitHubEnv, secrets?: {}) : string {
+    console.log(key);
             
     let ctx = key.substring(0,key.indexOf('.'))
     //console.log(ctx)
@@ -74,13 +73,23 @@ export function replaceEnvVariables(key : string, localEnv : GitHubEnv) : string
         case 'runner':
             val = localEnv ? localEnv['RUNNER_' + key] : ''
             break
+        case 'secrets':
+            console.log(secrets);
+            if(secrets) {
+                val = secrets[key];
+            } else {
+                console.error('Secrets was refered but not defined!');
+                val = ''
+            }
+            break
         default:
             val = ''
     }
+    console.log(val);
     return '"' + val + '"'
 }
 
-export function parseKey(exp : string, localEnv : GitHubEnv) : any {
+export function parseKey(exp : string, localEnv : GitHubEnv, secrets: {}) : any {
     exp = exp.trim()
     const mStr1 = /'([^'])'/gi
     const env = /[a-z]+\.[a-z]+/gi
@@ -91,7 +100,7 @@ export function parseKey(exp : string, localEnv : GitHubEnv) : any {
         exp = exp.replace(m,'$1')
     })
     exp?.match(env)?.forEach(m =>  {
-        exp = exp.replace(m, replaceEnvVariables(m, localEnv))
+        exp = exp.replace(m, replaceEnvVariables(m, localEnv, secrets))
     })
     
     const valid = /^(\w|([<>!'"()\s][=]?)|(-[^=])||(==)|(&&)|(\|\|))*$/g 
@@ -103,32 +112,24 @@ export function parseKey(exp : string, localEnv : GitHubEnv) : any {
     return exp
 }
 
-export function replaceExpression(str : any, localEnv : GitHubEnv) : any {
+export function replaceExpression(str : string, localEnv : GitHubEnv, secrets: {}) : any {
     const m = /\${{([^}]+)}}/gs;
     
     str?.match(m)?.forEach(s => {
-        let pk = parseKey(s.replace(m, '$1' ), localEnv);
+        let pk = parseKey(s.replace(m, '$1' ), localEnv, secrets);
         if(str.trim() === s) {
             str = pk;
         } else {
             str = str.replace(m,pk);
         }
     });
-
+    
+    //console.log(str);
     return str;
 }
 
-export function injectSystemEnv(globalEnv: GitHubEnv = {} as GitHubEnv, yamlData: WorkflowData) : GitHubEnv {
-    globalEnv.CI = 'true'
-    globalEnv.GITHUB_ACTOR = globalEnv["USERNAME"]
-    globalEnv.GITHUB_ACTOR_ID = globalEnv.GITHUB_ACTOR + '_ID'
-    globalEnv.GITHUB_API_URL = 'https://api.github.com'
-    globalEnv.GITHUB_GRAPHQL_URL = 'https://api.github.com/graphql'
-    globalEnv.GITHUB_SERVER_URL = 'https://github.com'
-    globalEnv.GITHUB_WORKFLOW = yamlData.name
-    globalEnv.RUNNER_ARCH = process.arch
-    globalEnv.RUNNER_OS = 'Windows'
-    globalEnv.RUNNER_NAME = globalEnv['COMPUTERNAME']
-    globalEnv.RUNNER_TEMP = tmpdir()
-    return globalEnv
+export function replaceExpressionInProperties(obj = {}, localEnv : GitHubEnv, secrets: {}) : any {
+    const map = Object.keys(obj).map((key) => [key, replaceExpression(obj[key],localEnv,secrets)]);
+    return Object.fromEntries(map);
 }
+

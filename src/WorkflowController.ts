@@ -1,10 +1,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { execFile, execFileSync, spawn, spawnSync } from 'child_process';
+import { execFileSync, spawnSync } from 'child_process';
 import * as yaml from 'js-yaml';
 import { Shell, ShellName } from './Shell.js';
 import { WorkflowData } from './WorkflowData.js';
-import { replaceExpression } from './EnviromentHelper.js';
+import { replaceExpression, replaceExpressionInProperties } from './EnviromentHelper.js';
 import { ActionData } from './ActionData.js';
 import { GitHubEnv } from './GitHubEnv.js';
 import { WorkflowStep } from './WorkflowStep.js';
@@ -14,10 +14,12 @@ export class WorkflowController {
 
     workflowTmpDir: string;
     repositoy: string;
+    secrets: {};
 
-    constructor(workflowTmpDir: string, repositoy: string) {
+    constructor(workflowTmpDir: string, repositoy: string, secrets : string) {
         this.workflowTmpDir = workflowTmpDir;
         this.repositoy = repositoy;
+        this.secrets = secrets;
     }
     
     injectSystemEnv(globalEnv: GitHubEnv = {} as GitHubEnv, yamlData: WorkflowData) : GitHubEnv {
@@ -39,7 +41,7 @@ export class WorkflowController {
 
     stepRun(step: any, jobShell?: any, stepEnv?: GitHubEnv, stepWDir?: any) {
         const stepShell = new Shell(step.shell, jobShell.name, stepEnv);
-        let stepRun = replaceExpression(step.run, stepEnv);
+        let stepRun = replaceExpression(step.run, stepEnv, this.secrets);
         stepRun = stepShell.fixScript(stepRun);
         let tmpFile = path.join(this.workflowTmpDir, 'job' + stepShell.fileExt);
         tmpFile = path.relative('.', tmpFile);
@@ -81,17 +83,27 @@ export class WorkflowController {
             } else if (yamlData.runs?.using?.match('node')) {
                 const main = yamlData.runs?.main;
 
-                let stepWith = Object.fromEntries(Object.keys(callingStep.with??{}).map((key) => ['INPUT_' + key, callingStep.with[key]]));
+                let stepWith = callingStep.with??{}; 
+                stepWith = replaceExpressionInProperties(stepWith, null, this.secrets);
+                
+                stepWith = Object.fromEntries(Object.keys(stepWith).map((key) => ['INPUT_' + key, stepWith[key]]));
                 
                 stepWith.GITHUB_WORKSPACE = stepEnv.GITHUB_WORKSPACE;
                 stepWith.GITHUB_REPOSITORY = stepEnv.GITHUB_REPOSITORY;
 
+                
                 if(!fs.existsSync(stepWith.GITHUB_WORKSPACE)) {
                     fs.mkdirSync(stepWith.GITHUB_WORKSPACE, {recursive: true});
                 }
+                
+                console.log(stepWith);
+                
+                if (stepWith && stepEnv) {
+                    stepEnv = Object.assign(stepEnv,stepWith);
+                }
 
                 if (main) {
-                    spawnSync(process.argv[0], [path.join(actionPath, '/', main)], { env: stepWith, stdio: 'inherit', cwd: stepWDir });
+                    spawnSync(process.argv[0], [path.join(actionPath, '/', main)], { env: stepEnv, stdio: 'inherit', cwd: stepWDir });
                 }
             } else {
                 console.error('Action not supported!');
@@ -104,7 +116,7 @@ export class WorkflowController {
             console.info(step.name);
             let stepWDir = step['working-directory'] ?? jobWDir;
 
-            let stepEnv = step.env;
+            let stepEnv = replaceExpressionInProperties(step.env, null, this.secrets);
             if (jobEnv && stepEnv) {
                 stepEnv = Object.assign(jobEnv, stepEnv);
             } else if (jobEnv) {
@@ -134,12 +146,20 @@ export class WorkflowController {
         if (job.default?.run) {
             jobWDir = job.default.run['working-directory'] ?? jobWDir;
         }
-        let jobEnv = job.env;
+        
+
+        let jobSecrets = job.secrets;
+        if('inherit' === jobSecrets) {
+            jobSecrets = this.secrets;
+        }
+
+        let jobEnv = replaceExpressionInProperties(job.env, null, this.secrets);
         if (jobEnv && globalEnv) {
             jobEnv = Object.assign(globalEnv, jobEnv);
         } else if (globalEnv) {
             jobEnv = globalEnv;
         }
+
         jobEnv.GITHUB_JOB = jobName;
 
         if (job['runs-on']?.toLowerCase().match('windows')) {

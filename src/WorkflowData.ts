@@ -19,6 +19,7 @@ export interface WorkflowData {
         needs?: string[]
         env?: any
         steps?: WorkflowStep[]
+        secrets?: any
     }]
     env?: any
 };

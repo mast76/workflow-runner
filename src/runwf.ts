@@ -5,6 +5,7 @@ import { WorkflowData } from './WorkflowData.js';
 import { WorkflowController } from './WorkflowController.js';
 import { tmpdir } from 'os';
 import { parse } from 'ini';
+import { loadSecrets } from './SecretsHelper.js';
 
 function resolveRepository(yml: string) : string {
     let lookupDir = path.dirname(yml)
@@ -44,11 +45,20 @@ function main() {
     let keepTempFiles = true;
     let yamlFile = null;
     let valid = true;
+    let secretsFile = null;
     for (let a = argv.shift() ; a && valid; a = argv.shift()) {
         console.log(a)
         switch (a) {
+            case '-ktf':
             case '--keepTempFiles':
                 keepTempFiles = true;
+                break;
+            case '-sf':    
+            case '--secretsFile':
+                secretsFile = argv.shift();
+                if(!secretsFile) {
+                    valid = false;
+                }
                 break;
             case '--help':
                 valid = false;
@@ -70,7 +80,8 @@ function main() {
         if(valid) {
             const yamlData = yaml.load(fs.readFileSync(yamlFile, 'utf8')) as WorkflowData;
             const repository = resolveRepository(yamlFile);
-            new WorkflowController(workflowTmpDir,repository).handleWorkflow(yamlData);
+            const secrets = loadSecrets(secretsFile);
+            new WorkflowController(workflowTmpDir, repository, secrets).handleWorkflow(yamlData);
         }
         else
         {
