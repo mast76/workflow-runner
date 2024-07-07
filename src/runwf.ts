@@ -7,7 +7,7 @@ import { tmpdir } from 'os';
 import { parse } from 'ini';
 import { loadSecrets } from './SecretsHelper.js';
 
-function resolveRepository(yml: string) : string {
+function resolveRepositoryDir(yml: string) : string {
     let lookupDir = path.dirname(yml)
 
     let gitCfgPath = null;
@@ -16,13 +16,18 @@ function resolveRepository(yml: string) : string {
         let chkPth = path.join(lookupDir,'.git','config') 
         //console.log(chkPth)
         if(fs.existsSync(chkPth)) {
-            //console.log('================')
-            gitCfgPath = chkPth;
             break;
         }
 
         lookupDir = path.join(lookupDir,'..')
     }
+
+    return lookupDir
+}
+
+function resolveRepository(lookupDir: string) : string {
+
+    let gitCfgPath = path.join(lookupDir,'.git','config');
 
     let repository = null;
     if(gitCfgPath) {
@@ -37,6 +42,7 @@ function resolveRepository(yml: string) : string {
         //console.log(m[1])
         repository = m[1];
     }
+
     return repository;
 }
 
@@ -79,9 +85,10 @@ function main() {
 
         if(valid) {
             const yamlData = yaml.load(fs.readFileSync(yamlFile, 'utf8')) as WorkflowData;
-            const repository = resolveRepository(yamlFile);
+            const repositoryRoot = resolveRepositoryDir(yamlFile)
+            const repository = resolveRepository(repositoryRoot);
             const secrets = loadSecrets(secretsFile);
-            new WorkflowController(workflowTmpDir, repository, secrets).handleWorkflow(yamlData);
+            new WorkflowController(workflowTmpDir, repository, repositoryRoot, secrets).handleWorkflow(yamlData);
         }
         else
         {

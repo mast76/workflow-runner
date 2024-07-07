@@ -13,13 +13,15 @@ import { tmpdir } from 'os';
 export class WorkflowController {
 
     workflowTmpDir: string;
-    repositoy: string;
+    repositoryRoot: string;
+    repository: string;
     secrets: {};
 
-    constructor(workflowTmpDir: string, repositoy: string, secrets : string) {
+    constructor(workflowTmpDir: string, repositoy: string, repositoyRoot: string, secrets : string) {
         this.workflowTmpDir = workflowTmpDir;
-        this.repositoy = repositoy;
+        this.repository = repositoy;
         this.secrets = secrets;
+        this.repositoryRoot = repositoyRoot;
     }
     
     injectSystemEnv(globalEnv: GitHubEnv = {} as GitHubEnv, yamlData: WorkflowData) : GitHubEnv {
@@ -28,10 +30,10 @@ export class WorkflowController {
         globalEnv.GITHUB_ACTOR_ID = globalEnv.GITHUB_ACTOR + '_ID';
         globalEnv.GITHUB_API_URL = 'https://api.github.com';
         globalEnv.GITHUB_GRAPHQL_URL = 'https://api.github.com/graphql';
-        globalEnv.GITHUB_REPOSITORY = this.repositoy;
+        globalEnv.GITHUB_REPOSITORY = this.repository;
         globalEnv.GITHUB_SERVER_URL = 'https://github.com';
         globalEnv.GITHUB_WORKFLOW = yamlData.name;
-        globalEnv.GITHUB_WORKSPACE = path.join(this.workflowTmpDir, 'work');
+        globalEnv.GITHUB_WORKSPACE = this.repositoryRoot;
         globalEnv.RUNNER_ARCH = process.arch;
         globalEnv.RUNNER_OS = 'Windows';
         globalEnv.RUNNER_NAME = globalEnv['COMPUTERNAME'];
@@ -88,22 +90,12 @@ export class WorkflowController {
                 
                 stepWith = Object.fromEntries(Object.keys(stepWith).map((key) => ['INPUT_' + key, stepWith[key]]));
                 
-                stepWith.GITHUB_WORKSPACE = stepEnv.GITHUB_WORKSPACE;
-                stepWith.GITHUB_REPOSITORY = stepEnv.GITHUB_REPOSITORY;
+                stepWith = Object.assign(stepEnv, stepWith);
 
-                
-                if(!fs.existsSync(stepWith.GITHUB_WORKSPACE)) {
-                    fs.mkdirSync(stepWith.GITHUB_WORKSPACE, {recursive: true});
-                }
-                
-                console.log(stepWith);
-                
-                if (stepWith && stepEnv) {
-                    stepEnv = Object.assign(stepEnv,stepWith);
-                }
+                //console.log(stepEnv);
 
                 if (main) {
-                    spawnSync(process.argv[0], [path.join(actionPath, '/', main)], { env: stepEnv, stdio: 'inherit', cwd: stepWDir });
+                    spawnSync(process.argv[0], [path.join(actionPath, '/', main)], { env: stepWith, stdio: 'inherit', cwd: stepWDir });
                 }
             } else {
                 console.error('Action not supported!');
@@ -176,6 +168,7 @@ export class WorkflowController {
         if (yamlData.defaults?.run) {
             globalWDir = yamlData.defaults.run['working-directory'] ?? globalWDir;
         }
+
         let globalEnv = yamlData.env;
         if (globalEnv) {
             globalEnv = Object.assign(process.env, globalEnv);

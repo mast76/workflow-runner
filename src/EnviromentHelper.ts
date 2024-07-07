@@ -74,7 +74,7 @@ export function replaceEnvVariables(key : string, localEnv?: GitHubEnv, secrets?
             val = localEnv ? localEnv['RUNNER_' + key] : ''
             break
         case 'secrets':
-            console.log(secrets);
+            //console.log(secrets);
             if(secrets) {
                 val = secrets[key];
             } else {
@@ -85,14 +85,14 @@ export function replaceEnvVariables(key : string, localEnv?: GitHubEnv, secrets?
         default:
             val = ''
     }
-    console.log(val);
+    //console.log(val);
     return '"' + val + '"'
 }
 
 export function parseKey(exp : string, localEnv : GitHubEnv, secrets: {}) : any {
     exp = exp.trim()
     const mStr1 = /'([^'])'/gi
-    const env = /[a-z]+\.[a-z]+/gi
+    const env = /[a-z]+\.[a-z_\d]+/gi
     
     exp = exp.replaceAll("''","\\'")
     
