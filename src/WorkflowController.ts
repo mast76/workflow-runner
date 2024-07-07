@@ -33,7 +33,7 @@ export class WorkflowController {
         globalEnv.GITHUB_REPOSITORY = this.repository;
         globalEnv.GITHUB_SERVER_URL = 'https://github.com';
         globalEnv.GITHUB_WORKFLOW = yamlData.name;
-        globalEnv.GITHUB_WORKSPACE = this.repositoryRoot;
+        globalEnv.GITHUB_WORKSPACE = path.join(this.workflowTmpDir, 'work');
         globalEnv.RUNNER_ARCH = process.arch;
         globalEnv.RUNNER_OS = 'Windows';
         globalEnv.RUNNER_NAME = globalEnv['COMPUTERNAME'];
@@ -172,11 +172,14 @@ export class WorkflowController {
         let globalEnv = yamlData.env;
         if (globalEnv) {
             globalEnv = Object.assign(process.env, globalEnv);
-        } else if (globalEnv) {
+        } else {
             globalEnv = process.env;
         }
 
         globalEnv = this.injectSystemEnv(globalEnv, yamlData);
+        if(!fs.existsSync(globalEnv.GITHUB_WORKSPACE)) {
+            fs.mkdirSync(globalEnv.GITHUB_WORKSPACE, { recursive: true });
+        }
         
         let jobs = Object.keys(yamlData.jobs).map(key => [key, yamlData.jobs[key]]);
 

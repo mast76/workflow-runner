@@ -55,7 +55,7 @@ export enum GithubContext {
 }
 
 export function replaceEnvVariables(key : string, localEnv?: GitHubEnv, secrets?: {}) : string {
-    console.log(key);
+    //console.log(key);
             
     let ctx = key.substring(0,key.indexOf('.'))
     //console.log(ctx)

@@ -38,9 +38,10 @@ function resolveRepository(lookupDir: string) : string {
         let url = dataMap.find( f => f[0].startsWith('remote'))[1].url;
         //console.log(dataMap)
 
-        let m = url.match(/.+\:(.+)\.git/);
-        //console.log(m[1])
-        repository = m[1];
+        let m = url.match(/^\s*((https?:\/\/.+\/)|(.+\:))([^\/]+\/[^\.\s]+)(\.git)?\s*$/);
+        
+        console.log(m);
+        repository = m[4];
     }
 
     return repository;
