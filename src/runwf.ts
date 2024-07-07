@@ -40,7 +40,7 @@ function resolveRepository(lookupDir: string) : string {
 
         let m = url.match(/^\s*((https?:\/\/.+\/)|(.+\:))([^\/]+\/[^\.\s]+)(\.git)?\s*$/);
         
-        console.log(m);
+        //console.log(m);
         repository = m[4];
     }
 
