@@ -105,23 +105,28 @@ export class WorkflowController {
 
     handleStep(jobWDir?: string, jobEnv?: GitHubEnv, jobShell?: any): any {
         return step => {
-            console.info(step.name);
-            let stepWDir = step['working-directory'] ?? jobWDir;
+            console.info("Step: " + step.name);
 
-            let stepEnv = replaceExpressionInProperties(step.env, null, this.secrets);
-            if (jobEnv && stepEnv) {
-                stepEnv = Object.assign(jobEnv, stepEnv);
-            } else if (jobEnv) {
-                stepEnv = jobEnv;
-            }
-
-            //console.log('stepEnv: ' + stepEnv.msg)
-            if (step.uses) {
-                this.stepUses(step, stepEnv, stepWDir);
-            }
-
-            if (step.run) {
-                this.stepRun(step, jobShell, stepEnv, stepWDir);
+            if(!step.if || replaceExpression(step.if, jobEnv, this.secrets) === true) {
+                let stepWDir = step['working-directory'] ?? jobWDir;
+    
+                let stepEnv = replaceExpressionInProperties(step.env, null, this.secrets);
+                if (jobEnv && stepEnv) {
+                    stepEnv = Object.assign(jobEnv, stepEnv);
+                } else if (jobEnv) {
+                    stepEnv = jobEnv;
+                }
+    
+                //console.log('stepEnv: ' + stepEnv.msg)
+                if (step.uses) {
+                    this.stepUses(step, stepEnv, stepWDir);
+                }
+    
+                if (step.run) {
+                    this.stepRun(step, jobShell, stepEnv, stepWDir);
+                }
+            } else {
+                console.info('Step was skipped because of if-statement'); 
             }
         };
     }
@@ -129,35 +134,39 @@ export class WorkflowController {
     handleJob(jobStep: any[], globalShell: any, globalWDir: string, globalEnv: any) {
         const jobName = jobStep[0];
         const job = jobStep[1];
-        console.log(jobName);
+        console.info('Job: ' + jobName);
 
-        let jobShell = job.defaults?.run?.shell;
-        jobShell = new Shell(jobShell, globalShell.name);
-        let jobWDir = globalWDir;
-        
-        if (job.default?.run) {
-            jobWDir = job.default.run['working-directory'] ?? jobWDir;
-        }
-        
-
-        let jobSecrets = job.secrets;
-        if('inherit' === jobSecrets) {
-            jobSecrets = this.secrets;
-        }
-
-        let jobEnv = replaceExpressionInProperties(job.env, null, this.secrets);
-        if (jobEnv && globalEnv) {
-            jobEnv = Object.assign(globalEnv, jobEnv);
-        } else if (globalEnv) {
-            jobEnv = globalEnv;
-        }
-
-        jobEnv.GITHUB_JOB = jobName;
-
-        if (job['runs-on']?.toLowerCase().match('windows')) {
-            job.steps?.forEach( this.handleStep(jobWDir, jobEnv, jobShell));
+        if(!jobStep.if || replaceExpression(jobStep.if, globalEnv, this.secrets) === true) {
+            let jobShell = job.defaults?.run?.shell;
+            jobShell = new Shell(jobShell, globalShell.name);
+            let jobWDir = globalWDir;
+            
+            if (job.default?.run) {
+                jobWDir = job.default.run['working-directory'] ?? jobWDir;
+            }
+            
+    
+            let jobSecrets = job.secrets;
+            if('inherit' === jobSecrets) {
+                jobSecrets = this.secrets;
+            }
+    
+            let jobEnv = replaceExpressionInProperties(job.env, null, this.secrets);
+            if (jobEnv && globalEnv) {
+                jobEnv = Object.assign(globalEnv, jobEnv);
+            } else if (globalEnv) {
+                jobEnv = globalEnv;
+            }
+    
+            jobEnv.GITHUB_JOB = jobName;
+    
+            if (job['runs-on']?.toLowerCase().match('windows')) {
+                job.steps?.forEach( this.handleStep(jobWDir, jobEnv, jobShell));
+            } else {
+                console.warn("Skipped job '" + jobStep[0] + "' cannot run on Windows!");
+            }
         } else {
-            console.warn("Skipped job '" + jobStep[0] + "' cannot run on Windows!");
+            console.info('Job was skipped because of if-statement'); 
         }
     }
 
