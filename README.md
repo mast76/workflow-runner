@@ -24,15 +24,17 @@ NodeJs, NPM, Powershell 7 (if pwsh is used by your workflows), Git (if bash is u
 - Enviroment context, e.g.  *${{ env.USERNAME }}* and *%USERNAME%*
 - GitHub environment context partly, e.g. *${{ github.SERVER_URL}}* and *%GITHUB_SERVER_URL%* 
 - Runner environment context partly, e.g. *${{ runner.TEMP }}* and *%RUNNER_TEMP%*
+- Secrets context (encrypted file based)
+- Vars context (file based)
 - Uses / actions
 - With
-- Secrets
+- Conditions (if)
 
 ### Missing (but within current scope)
-- Conditions (if)
 - Other environment contexts
 - Python
 - Reusable workflows
+- NPM package
 
 ### Thoughts
 - Linux runner via WSL
