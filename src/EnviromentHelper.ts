@@ -54,7 +54,7 @@ export enum GithubContext {
     inputs
 }
 
-export function replaceEnvVariables(key : string, localEnv?: GitHubEnv, secrets?: {}) : string {
+export function replaceEnvVariables(key : string, localEnv?: GitHubEnv, vars?:  {}, secrets?: {}) : string {
     //console.log(key);
             
     let ctx = key.substring(0,key.indexOf('.'))
@@ -73,12 +73,20 @@ export function replaceEnvVariables(key : string, localEnv?: GitHubEnv, secrets?
         case 'runner':
             val = localEnv ? localEnv['RUNNER_' + key] : ''
             break
+        case 'vars':
+            if(vars) {
+                val = vars[key];
+            } else {
+                console.error('Vars context was refered but not defined!');
+                val = ''
+            }
+            break
         case 'secrets':
             //console.log(secrets);
             if(secrets) {
                 val = secrets[key];
             } else {
-                console.error('Secrets was refered but not defined!');
+                console.error('Secrets context was refered but not defined!');
                 val = ''
             }
             break

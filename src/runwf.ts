@@ -10,8 +10,6 @@ import { loadSecrets } from './SecretsHelper.js';
 function resolveRepositoryDir(yml: string) : string {
     let lookupDir = path.dirname(yml)
 
-    let gitCfgPath = null;
-
     for (let index = 0; index < 10; index++){
         let chkPth = path.join(lookupDir,'.git','config') 
         //console.log(chkPth)
@@ -53,6 +51,7 @@ function main() {
     let yamlFile = null;
     let valid = true;
     let secretsFile = null;
+    let varsFile = null;
     for (let a = argv.shift() ; a && valid; a = argv.shift()) {
         console.log(a)
         switch (a) {
@@ -64,6 +63,13 @@ function main() {
             case '--secretsFile':
                 secretsFile = argv.shift();
                 if(!secretsFile) {
+                    valid = false;
+                }
+                break;
+            case '-vf':    
+            case '--varsFile':
+                varsFile = argv.shift();
+                if(!varsFile) {
                     valid = false;
                 }
                 break;
@@ -89,7 +95,8 @@ function main() {
             const repositoryRoot = resolveRepositoryDir(yamlFile)
             const repository = resolveRepository(repositoryRoot);
             const secrets = loadSecrets(secretsFile);
-            new WorkflowController(workflowTmpDir, repository, repositoryRoot, secrets).handleWorkflow(yamlData);
+            const vars = varsFile ? yaml.load(fs.readFileSync(varsFile, 'utf8')) : {};
+            new WorkflowController(workflowTmpDir, repository, repositoryRoot, vars, secrets).handleWorkflow(yamlData);
         }
         else
         {

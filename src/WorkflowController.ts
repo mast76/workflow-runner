@@ -16,11 +16,13 @@ export class WorkflowController {
     repositoryRoot: string;
     repository: string;
     secrets: {};
+    vars: {};
 
-    constructor(workflowTmpDir: string, repositoy: string, repositoyRoot: string, secrets : string) {
+    constructor(workflowTmpDir: string, repositoy: string, repositoyRoot: string, vars : {}, secrets : {}) {
         this.workflowTmpDir = workflowTmpDir;
         this.repository = repositoy;
         this.secrets = secrets;
+        this.vars = vars;
         this.repositoryRoot = repositoyRoot;
     }
     
@@ -120,7 +122,7 @@ export class WorkflowController {
                     return;
                 }
             }
-            
+
             let stepWDir = step['working-directory'] ?? jobWDir;
 
             let stepEnv = replaceExpressionInProperties(step.env, null, this.secrets);
