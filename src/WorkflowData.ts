@@ -1,26 +1,26 @@
 import { WorkflowStep } from "./WorkflowStep";
 
 export interface WorkflowData {
-    name?: string
+    name?: string;
     defaults?: {
         run?: {
-            shell?: string
-            "working-directory"?: string
+            shell?: string;
+            "working-directory"?: string;
         }
-    }
+    };
     jobs?: [{
-        name?: string
+        name?: string;
         defaults?: {
             run?: {
                 shell?: string
                 "working-directory"?: string
             }
-        }
-        needs?: string[]
-        env?: any
-        steps?: WorkflowStep[]
-        secrets?: any
-        if?: string
-    }]
-    env?: any
+        };
+        needs?: string[];
+        env?: any;
+        steps?: WorkflowStep[];
+        secrets?: any;
+        if?: string;
+    }];
+    env?: any;
 };
