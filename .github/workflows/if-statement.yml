@@ -7,19 +7,19 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Step should show
-        if: ${{ test }}
+        if: ${{ env.test }}
         run: Write-Host "This text should show!"
       - name: Step should not show
-        if: ${{ !test }}
+        if: ${{ !env.test }}
         run: Write-Host "This text should not show!"
   test-jobs-show:
-    if: ${{ test }}
+    if: ${{ env.test }}
     runs-on: windows-latest
     steps:
       - name: Step should show
         run: Write-Host "This text should show!"
   test-jobs-no-show:
-    if: ${{ !test }}
+    if: ${{ !env.test }}
     runs-on: windows-latest
     steps:
       - name: Step should show
