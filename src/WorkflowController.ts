@@ -35,7 +35,7 @@ export class WorkflowController {
         globalEnv.GITHUB_REPOSITORY = this.repository;
         globalEnv.GITHUB_SERVER_URL = 'https://github.com';
         globalEnv.GITHUB_WORKFLOW = yamlData.name;
-        globalEnv.GITHUB_WORKSPACE = path.join(this.workflowTmpDir, 'work');
+        globalEnv.GITHUB_WORKSPACE = this.repositoryRoot;
         globalEnv.RUNNER_ARCH = process.arch;
         globalEnv.RUNNER_OS = 'Windows';
         globalEnv.RUNNER_NAME = globalEnv['COMPUTERNAME'];
