@@ -136,7 +136,7 @@ export class WorkflowController {
         const job = jobStep[1];
         console.info('Job: ' + jobName);
 
-        if(!jobStep.if || replaceExpression(jobStep.if, globalEnv, this.secrets) === true) {
+        if(!job.if || replaceExpression(job.if, globalEnv, this.secrets) === true) {
             let jobShell = job.defaults?.run?.shell;
             jobShell = new Shell(jobShell, globalShell.name);
             let jobWDir = globalWDir;
