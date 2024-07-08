@@ -1,0 +1,26 @@
+name: if-statement
+on: push
+env:
+  test: true
+jobs:
+  test-steps:
+    runs-on: windows-latest
+    steps:
+      - name: Step should show
+        if: ${{ test }}
+        run: Write-Host "This text should show!"
+      - name: Step should not show
+        if: ${{ !test }}
+        run: Write-Host "This text should not show!"
+  test-jobs-show:
+    if: ${{ test }}
+    runs-on: windows-latest
+    steps:
+      - name: Step should show
+        run: Write-Host "This text should show!"
+  test-jobs-no-show:
+    if: ${{ !test }}
+    runs-on: windows-latest
+    steps:
+      - name: Step should show
+        run: Write-Host "This text not should show!"
