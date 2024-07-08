@@ -4,7 +4,7 @@ import { execFileSync, spawnSync } from 'child_process';
 import * as yaml from 'js-yaml';
 import { Shell, ShellName } from './Shell.js';
 import { WorkflowData } from './WorkflowData.js';
-import { replaceExpression, replaceExpressionInProperties } from './EnviromentHelper.js';
+import { replaceExpression, replaceExpressionInProperties, parseKey } from './EnviromentHelper.js';
 import { ActionData } from './ActionData.js';
 import { GitHubEnv } from './GitHubEnv.js';
 import { WorkflowStep } from './WorkflowStep.js';
@@ -107,26 +107,36 @@ export class WorkflowController {
         return step => {
             console.info("Step: " + step.name);
 
-            if(!step.if || replaceExpression(step.if, jobEnv, this.secrets) === true) {
-                let stepWDir = step['working-directory'] ?? jobWDir;
-    
-                let stepEnv = replaceExpressionInProperties(step.env, null, this.secrets);
-                if (jobEnv && stepEnv) {
-                    stepEnv = Object.assign(jobEnv, stepEnv);
-                } else if (jobEnv) {
-                    stepEnv = jobEnv;
+            if(step.if) {
+                let test = false;
+                if(step.if.match(/\$\{\{/)) {
+                    test = replaceExpression(step.if, jobEnv, this.secrets);
+                } else {
+                    test = parseKey(step.if, jobEnv, this.secrets);
                 }
-    
-                //console.log('stepEnv: ' + stepEnv.msg)
-                if (step.uses) {
-                    this.stepUses(step, stepEnv, stepWDir);
+
+                if (!test) {
+                    console.info('Step was skipped because of if-statement'); 
+                    return;
                 }
-    
-                if (step.run) {
-                    this.stepRun(step, jobShell, stepEnv, stepWDir);
-                }
-            } else {
-                console.info('Step was skipped because of if-statement'); 
+            }
+            
+            let stepWDir = step['working-directory'] ?? jobWDir;
+
+            let stepEnv = replaceExpressionInProperties(step.env, null, this.secrets);
+            if (jobEnv && stepEnv) {
+                stepEnv = Object.assign(jobEnv, stepEnv);
+            } else if (jobEnv) {
+                stepEnv = jobEnv;
+            }
+
+            //console.log('stepEnv: ' + stepEnv.msg)
+            if (step.uses) {
+                this.stepUses(step, stepEnv, stepWDir);
+            }
+
+            if (step.run) {
+                this.stepRun(step, jobShell, stepEnv, stepWDir);
             }
         };
     }
@@ -136,38 +146,49 @@ export class WorkflowController {
         const job = jobStep[1];
         console.info('Job: ' + jobName);
 
-        if(!job.if || replaceExpression(job.if, globalEnv, this.secrets) === true) {
-            let jobShell = job.defaults?.run?.shell;
-            jobShell = new Shell(jobShell, globalShell.name);
-            let jobWDir = globalWDir;
-            
-            if (job.default?.run) {
-                jobWDir = job.default.run['working-directory'] ?? jobWDir;
-            }
-            
-    
-            let jobSecrets = job.secrets;
-            if('inherit' === jobSecrets) {
-                jobSecrets = this.secrets;
-            }
-    
-            let jobEnv = replaceExpressionInProperties(job.env, null, this.secrets);
-            if (jobEnv && globalEnv) {
-                jobEnv = Object.assign(globalEnv, jobEnv);
-            } else if (globalEnv) {
-                jobEnv = globalEnv;
-            }
-    
-            jobEnv.GITHUB_JOB = jobName;
-    
-            if (job['runs-on']?.toLowerCase().match('windows')) {
-                job.steps?.forEach( this.handleStep(jobWDir, jobEnv, jobShell));
+        if(job.if) {
+            let test = false;
+            if(job.if.match(/\$\{\{/)) {
+                test = replaceExpression(job.if, globalEnv, this.secrets);
             } else {
-                console.warn("Skipped job '" + jobStep[0] + "' cannot run on Windows!");
+                test = parseKey(job.if, globalEnv, this.secrets);
             }
-        } else {
-            console.info('Job was skipped because of if-statement'); 
+            
+            if (!test) {
+                console.info('Job was skipped because of if-statement'); 
+                return;
+            }
         }
+
+        let jobShell = job.defaults?.run?.shell;
+        jobShell = new Shell(jobShell, globalShell.name);
+        let jobWDir = globalWDir;
+        
+        if (job.default?.run) {
+            jobWDir = job.default.run['working-directory'] ?? jobWDir;
+        }
+        
+
+        let jobSecrets = job.secrets;
+        if('inherit' === jobSecrets) {
+            jobSecrets = this.secrets;
+        }
+
+        let jobEnv = replaceExpressionInProperties(job.env, null, this.secrets);
+        if (jobEnv && globalEnv) {
+            jobEnv = Object.assign(globalEnv, jobEnv);
+        } else if (globalEnv) {
+            jobEnv = globalEnv;
+        }
+
+        jobEnv.GITHUB_JOB = jobName;
+
+        if (job['runs-on']?.toLowerCase().match('windows')) {
+            job.steps?.forEach( this.handleStep(jobWDir, jobEnv, jobShell));
+        } else {
+            console.warn("Skipped job '" + jobStep[0] + "' cannot run on Windows!");
+        }
+    
     }
 
     handleWorkflow(yamlData: WorkflowData) {

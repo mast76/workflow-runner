@@ -13,14 +13,14 @@ jobs:
         if: ${{ !(env.test) }}
         run: Write-Host "This text should not show!"
   test-jobs-show:
-    if: ${{ env.test }}
     runs-on: windows-latest
+    if: env.CI
     steps:
-      - name: Step should show
+      - name: Job should show
         run: Write-Host "This text should show!"
   test-jobs-no-show:
-    if: ${{ !(env.test) }}
+    if: ${{ !(env.CI) }}
     runs-on: windows-latest
     steps:
-      - name: Step should show
+      - name: Job should not show
         run: Write-Host "This text not should show!"

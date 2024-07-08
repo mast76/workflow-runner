@@ -13,4 +13,5 @@ jobs:
     - run: npx tsc  
     - run: node --test --test-reporter=@reporters/github test\* 
     - run: node built\runwf.js .github\workflows\hello-world.yml
+    - run: node built\runwf.js .github\workflows\if-statement.yml
             
