@@ -7,4 +7,5 @@ export interface WorkflowStep {
     with?: any;
     run?: string;
     "working-directory"?: string;
+    if?: string;
 }
