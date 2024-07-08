@@ -13,6 +13,9 @@ NodeJs, NPM, Powershell 7 (if pwsh is used by your workflows), Git (if bash is u
 - Ignores jobs targeting other platforms than Windows
 - Ignores deliberately stuff like 'on push' and 'on schedule' as it is not a part of the intended scope
 
+## Warning :warning:
+When using action/checkout this action will delete the workspace before checking out. That includes the .git-folder and commited but unpushed changes within it.
+
 ## Status
 
 ### Implements
