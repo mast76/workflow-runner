@@ -14,13 +14,13 @@ jobs:
         run: Write-Host "This text should not show!"
   test-jobs-show:
     runs-on: windows-latest
-    if: env.CI
+    if: github.event_name
     steps:
       - name: Job should show
-        run: Write-Host "This text should show!"
+        run: Write-Host "This text should show on GitHub!"
   test-jobs-no-show:
-    if: ${{ !(env.CI) }}
+    if: ${{ !(github.event_name) }}
     runs-on: windows-latest
     steps:
       - name: Job should not show
-        run: Write-Host "This text not should show!"
+        run: Write-Host "This text not should show on GitHub!"

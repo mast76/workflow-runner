@@ -4,13 +4,14 @@ import { execFileSync, spawnSync } from 'child_process';
 import * as yaml from 'js-yaml';
 import { Shell, ShellName } from './Shell.js';
 import { WorkflowData } from './WorkflowData.js';
-import { replaceExpression, replaceExpressionInProperties, parseKey } from './EnviromentHelper.js';
+import { EnviromentHelper } from './EnviromentHelper.js';
 import { ActionData } from './ActionData.js';
 import { GitHubEnv } from './GitHubEnv.js';
 import { WorkflowStep } from './WorkflowStep.js';
 import { tmpdir } from 'os';
 
 export class WorkflowController {
+    enviromentHelper = new EnviromentHelper();
 
     workflowTmpDir: string;
     repositoryRoot: string;
@@ -27,7 +28,7 @@ export class WorkflowController {
     }
     
     injectSystemEnv(globalEnv: GitHubEnv = {} as GitHubEnv, yamlData: WorkflowData) : GitHubEnv {
-        globalEnv.CI = 'true';
+        globalEnv.CI = 'false';
         globalEnv.GITHUB_ACTOR = globalEnv["USERNAME"];
         globalEnv.GITHUB_ACTOR_ID = globalEnv.GITHUB_ACTOR + '_ID';
         globalEnv.GITHUB_API_URL = 'https://api.github.com';
@@ -35,7 +36,7 @@ export class WorkflowController {
         globalEnv.GITHUB_REPOSITORY = this.repository;
         globalEnv.GITHUB_SERVER_URL = 'https://github.com';
         globalEnv.GITHUB_WORKFLOW = yamlData.name;
-        globalEnv.GITHUB_WORKSPACE = this.repositoryRoot;
+        globalEnv.GITHUB_WORKSPACE = path.join(this.workflowTmpDir, 'work');
         globalEnv.RUNNER_ARCH = process.arch;
         globalEnv.RUNNER_OS = 'Windows';
         globalEnv.RUNNER_NAME = globalEnv['COMPUTERNAME'];
@@ -45,12 +46,13 @@ export class WorkflowController {
 
     stepRun(step: any, jobShell?: any, stepEnv?: GitHubEnv, stepWDir?: any) {
         const stepShell = new Shell(step.shell, jobShell.name, stepEnv);
-        let stepRun = replaceExpression(step.run, stepEnv, this.secrets);
+        let stepRun = this.enviromentHelper.replaceExpression(step.run, stepEnv, this.vars , this.secrets);
         stepRun = stepShell.fixScript(stepRun);
-        let tmpFile = path.join(this.workflowTmpDir, 'job' + stepShell.fileExt);
-        tmpFile = path.relative('.', tmpFile);
-
+        let tmpFile = path.join(this.workflowTmpDir, step.name.replaceAll(/\s/g,'_') + stepShell.fileExt);
+        
         fs.writeFileSync(tmpFile, stepRun);
+        tmpFile = path.relative(stepWDir, tmpFile);
+
         let eFile = tmpFile;
         if ('\\' !== stepShell.pathSeparator) {
             eFile = eFile.replaceAll('\\', stepShell.pathSeparator);
@@ -88,7 +90,7 @@ export class WorkflowController {
                 const main = yamlData.runs?.main;
 
                 let stepWith = callingStep.with??{}; 
-                stepWith = replaceExpressionInProperties(stepWith, null, this.secrets);
+                stepWith = this.enviromentHelper.replaceExpressionInProperties(stepWith, null, this.vars, this.secrets);
                 
                 stepWith = Object.fromEntries(Object.keys(stepWith).map((key) => ['INPUT_' + key, stepWith[key]]));
                 
@@ -112,9 +114,9 @@ export class WorkflowController {
             if(step.if) {
                 let test = false;
                 if(step.if.match(/\$\{\{/)) {
-                    test = replaceExpression(step.if, jobEnv, this.secrets);
+                    test = this.enviromentHelper.replaceExpression(step.if, jobEnv, this.vars , this.secrets);
                 } else {
-                    test = parseKey(step.if, jobEnv, this.secrets);
+                    test = this.enviromentHelper.parseKey(step.if, jobEnv, this.vars , this.secrets);
                 }
 
                 if (!test) {
@@ -125,7 +127,7 @@ export class WorkflowController {
 
             let stepWDir = step['working-directory'] ?? jobWDir;
 
-            let stepEnv = replaceExpressionInProperties(step.env, null, this.secrets);
+            let stepEnv = this.enviromentHelper.replaceExpressionInProperties(step.env, null, this.vars, this.secrets);
             if (jobEnv && stepEnv) {
                 stepEnv = Object.assign(jobEnv, stepEnv);
             } else if (jobEnv) {
@@ -151,9 +153,9 @@ export class WorkflowController {
         if(job.if) {
             let test = false;
             if(job.if.match(/\$\{\{/)) {
-                test = replaceExpression(job.if, globalEnv, this.secrets);
+                test = this.enviromentHelper.replaceExpression(job.if, globalEnv, this.vars, this.secrets);
             } else {
-                test = parseKey(job.if, globalEnv, this.secrets);
+                test = this.enviromentHelper.parseKey(job.if, globalEnv, this.vars, this.secrets);
             }
             
             if (!test) {
@@ -176,7 +178,7 @@ export class WorkflowController {
             jobSecrets = this.secrets;
         }
 
-        let jobEnv = replaceExpressionInProperties(job.env, null, this.secrets);
+        let jobEnv = this.enviromentHelper.replaceExpressionInProperties(job.env, null, this.vars, this.secrets);
         if (jobEnv && globalEnv) {
             jobEnv = Object.assign(globalEnv, jobEnv);
         } else if (globalEnv) {
@@ -196,10 +198,6 @@ export class WorkflowController {
     handleWorkflow(yamlData: WorkflowData) {
         let globalShell: any = yamlData.defaults?.run?.shell;
         globalShell = new Shell(globalShell);
-        let globalWDir = '.';
-        if (yamlData.defaults?.run) {
-            globalWDir = yamlData.defaults.run['working-directory'] ?? globalWDir;
-        }
 
         let globalEnv = yamlData.env;
         if (globalEnv) {
@@ -213,6 +211,11 @@ export class WorkflowController {
             fs.mkdirSync(globalEnv.GITHUB_WORKSPACE, { recursive: true });
         }
         
+        let globalWDir = globalEnv.GITHUB_WORKSPACE;
+        if (yamlData.defaults?.run) {
+            globalWDir = yamlData.defaults.run['working-directory'] ?? globalWDir;
+        }
+
         let jobs = Object.keys(yamlData.jobs).map(key => [key, yamlData.jobs[key]]);
 
         let ready = jobs?.filter(jobStep => !jobStep[1].needs);

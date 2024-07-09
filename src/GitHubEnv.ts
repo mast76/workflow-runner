@@ -101,6 +101,10 @@ export type GitHubEnv = {
  	*/
 	GITHUB_REPOSITORY_OWNER_ID : string
 	/**
+	*	The Git URL to the repository. For example, git://github.com/octocat/hello-world.git. 
+ 	*/
+	GITHUB_REPOSITORYURL : string
+	/**
 	*	The number of days that workflow run logs and artifacts are kept. For example, 90. 
  	*/
 	GITHUB_RETENTION_DAYS : string
