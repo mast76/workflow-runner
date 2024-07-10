@@ -1,3 +1,4 @@
+import { match } from "assert";
 import { GitHubEnv } from "./GitHubEnv";
 
 /**
@@ -54,90 +55,118 @@ export enum GithubContext {
     inputs
 }
 
-export function replaceEnvVariables(key : string, localEnv?: GitHubEnv, vars?:  {}, secrets?: {}) : string {
-    //console.log(key);
-            
-    let ctx = key.substring(0,key.indexOf('.'))
-    //console.log(ctx)
-
-    key = key.substring(key.indexOf('.')+1)
-    let val=''
-    
-    switch (ctx) {
-        case 'env':
-            val = localEnv ? localEnv[key] : ''
-            break
-        case 'github':
-            val = localEnv ? localEnv['GITHUB_' + key] : ''
-            break
-        case 'runner':
-            val = localEnv ? localEnv['RUNNER_' + key] : ''
-            break
-        case 'vars':
-            if(vars) {
-                val = vars[key];
-            } else {
-                console.error('Vars context was refered but not defined!');
-                val = ''
-            }
-            break
-        case 'secrets':
-            //console.log(secrets);
-            if(secrets) {
-                val = secrets[key];
-            } else {
-                console.error('Secrets context was refered but not defined!');
-                val = ''
-            }
-            break
-        default:
-            val = ''
-    }
-    //console.log(val);
-    return '"' + val + '"'
-}
-
-export function parseKey(exp : string, localEnv : GitHubEnv, secrets: {}) : any {
-    exp = exp.trim()
-    const mStr1 = /'([^'])'/gi
-    const env = /[a-z]+\.[a-z_\d]+/gi
-    
-    exp = exp.replaceAll("''","\\'")
-    
-    exp?.match(mStr1)?.forEach(m => {
-        exp = exp.replace(m,'$1')
-    })
-    exp?.match(env)?.forEach(m =>  {
-        exp = exp.replace(m, replaceEnvVariables(m, localEnv, secrets))
-    })
-    
-    const valid = /^(\w|([<>!'"()\s][=]?)|(-[^=])||(==)|(&&)|(\|\|))*$/g 
-
-    if(valid) {
-        exp = eval(exp)
-    }
-    
-    return exp
-}
-
-export function replaceExpression(str : string, localEnv : GitHubEnv, secrets: {}) : any {
-    const m = /\${{([^}]+)}}/gs;
-    
-    str?.match(m)?.forEach(s => {
-        let pk = parseKey(s.replace(m, '$1' ), localEnv, secrets);
-        if(str.trim() === s) {
-            str = pk;
-        } else {
-            str = str.replace(m,pk);
+export class EnviromentHelper {
+    replaceEnvVariables(key : string, localEnv?: GitHubEnv, vars?: {}, secrets?: {}) : string {
+        //console.log(vars);
+        //console.log(secrets);
+                
+        let ctx = key.substring(0,key.indexOf('.'));
+        //console.log(ctx)
+        
+        key = key.substring(key.indexOf('.')+1);
+        //console.log(key);
+        
+        let val : any ='';
+        
+        switch (ctx) {
+            case 'env':
+                val = localEnv ? localEnv[key] : '';
+                break;
+            case 'github':
+                val = localEnv ? localEnv['GITHUB_' + key.toUpperCase()] : '';
+                break;
+            case 'runner':
+                val = localEnv ? localEnv['RUNNER_' + key.toUpperCase()] : '';
+                break;
+            case 'vars':
+                if(vars) {
+                    val = vars[key];
+                } else {
+                    console.error('Vars context was refered but not defined!');
+                    val = '';
+                }
+                break
+            case 'secrets':
+                //console.log(secrets);
+                if(secrets) {
+                    val = secrets[key];
+                } else {
+                    console.error('Secrets context was refered but not defined!');
+                    val = '';
+                }
+                break;
+            default:
+                val = '';
         }
-    });
-    
-    //console.log(str);
-    return str;
-}
 
-export function replaceExpressionInProperties(obj = {}, localEnv : GitHubEnv, secrets: {}) : any {
-    const map = Object.keys(obj).map((key) => [key, replaceExpression(obj[key],localEnv,secrets)]);
-    return Object.fromEntries(map);
+        const shouldEval = /^((true)|(false)|(null)|(-?\d+)|(-?\d*(\.\d+)(e-?\d+)?)|(-?0x[\dA-F]+))$/i;
+        
+        //console.log(typeof(val) + ": " + val);
+
+        if((typeof val) === 'string' && val.match(shouldEval)) {
+            val = eval(val);
+        }
+
+        //console.log(val);
+        return val;
+    }
+
+    parseKey(exp : string, localEnv : GitHubEnv, vars: {}, secrets: {}) : any {
+        exp = exp.trim();
+        const mStr1 = /('([^']|((?=')).)+?')/g;
+        const env = /[a-z]+\.[a-z_\d]+/gi;
+        
+        //console.log("parseKey: "+ exp);
+        exp = exp.replaceAll(mStr1, '$1');
+        
+        exp = exp.replaceAll("''","\\'");
+
+        exp?.match(env)?.forEach(m =>  {
+            exp = exp.replace(m, this.replaceEnvVariables(m, localEnv, vars, secrets));
+        }) 
+
+        const hasQoutes = /^["'].*["']$/;
+        const hasSpace = /\s/;
+        const isKeyword = /^(true)|(false)|(null)$/;
+        
+        const shouldEval = /^-?(true)|(false)|(null)|(\d*(\.\d+))|([\dA-F]+)$/i;
+
+        if(!exp.match(hasQoutes) && exp.match(hasSpace) && ! exp.match(isKeyword)) {
+            exp = '"' + exp + '"';
+        }
+
+        const valid = /^["'-]?(\w|[\\\.'"()\s]|([<>!][=]?)|(-[^=])||(==)|(&&)|(\|\|))+$/;
+
+        if (exp?.match(valid)) {
+            //console.log('eval: ' + exp);
+            exp = eval(exp);
+        }
+        //console.log('pk:' + exp);
+        return exp;
+    }
+
+    statementMatcher = /\${{([^}]+)}}?/gs;
+
+    replaceExpression(str : string, localEnv : GitHubEnv, vars: {}, secrets: {}) : any {
+        
+        str?.match(this.statementMatcher)?.forEach(s => {
+            //console.log(s)
+            let pk = this.parseKey(s.replace(this.statementMatcher, '$1' ), localEnv, vars, secrets);
+            //console.log(pk)
+            if(str.trim() === s) {
+                str = pk;
+            } else {
+                str = str.replace(this.statementMatcher,pk);
+            }
+        });
+        
+        //console.log(str);
+        return str;
+    }
+
+    replaceExpressionInProperties(obj = {}, localEnv : GitHubEnv, vars: {}, secrets: {}) : any {
+        const map = Object.keys(obj).map((key) => [key, this.replaceExpression(obj[key],localEnv,vars,secrets)]);
+        return Object.fromEntries(map);
+    }
 }
 
