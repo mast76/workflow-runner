@@ -18,6 +18,7 @@ export class WorkflowController {
     repository: string;
     secrets: {};
     vars: {};
+    bashPath = '';
 
     constructor(workflowTmpDir: string, repositoy: string, repositoyRoot: string, vars : {}, secrets : {}) {
         this.workflowTmpDir = workflowTmpDir;
@@ -25,6 +26,23 @@ export class WorkflowController {
         this.secrets = secrets;
         this.vars = vars;
         this.repositoryRoot = repositoyRoot;
+
+        this.bashPath = path.join(process.env['GIT_EXEC_PATH']??'','bash.exe');
+
+        if(!fs.existsSync(this.bashPath)) {
+            this.bashPath = "C:/Program Files/Git/bin/bash.exe"
+        }
+        
+        if(!fs.existsSync(this.bashPath)) {
+            let gitPath = execFileSync('where',['git'],{shell: 'cmd'}).toString();
+            if(gitPath) {
+                this.bashPath = path.join(path.dirname(gitPath),'bash.exe');
+            }
+        }
+        
+        if(!fs.existsSync(this.bashPath)) {
+            console.warn('Could not find Git-bash!');
+        }
     }
     
     injectSystemEnv(globalEnv: GitHubEnv = {} as GitHubEnv, yamlData: WorkflowData) : GitHubEnv {
@@ -59,7 +77,7 @@ export class WorkflowController {
         }
 
         try {
-            const shellExec = stepShell.name == ShellName.bash ? "C:/Program Files/Git/bin/bash.exe" : stepShell.name.toString();
+            const shellExec = stepShell.name == ShellName.bash ? this.bashPath : stepShell.name.toString();
             execFileSync(eFile, { stdio: 'inherit', env: stepShell.env, cwd: stepWDir, shell: shellExec });
         } catch (e) {
             console.error(stepShell.name + 'script failed: ' + stepRun);
