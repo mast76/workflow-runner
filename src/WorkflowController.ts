@@ -18,6 +18,7 @@ export class WorkflowController {
     repository: string;
     secrets: {};
     vars: {};
+    gitPath = '';
     bashPath = '';
 
     constructor(workflowTmpDir: string, repositoy: string, repositoyRoot: string, vars : {}, secrets : {}) {
@@ -27,20 +28,19 @@ export class WorkflowController {
         this.vars = vars;
         this.repositoryRoot = repositoyRoot;
 
-        this.bashPath = path.join(process.env['GIT_EXEC_PATH']??'','bash.exe');
+        this.gitPath = path.join(process.env['GIT_EXEC_PATH']??'','git.exe');
 
-        if(!fs.existsSync(this.bashPath)) {
-            this.bashPath = "C:/Program Files/Git/bin/bash.exe"
+        if(!fs.existsSync(this.gitPath)) {
+            this.gitPath = "C:/Program Files/Git/bin/git.exe"
         }
         
-        if(!fs.existsSync(this.bashPath)) {
-            let gitPath = execFileSync('where',['git'],{shell: 'cmd'}).toString();
-            if(gitPath) {
-                this.bashPath = path.join(path.dirname(gitPath),'bash.exe');
-            }
+        if(!fs.existsSync(this.gitPath)) {
+            this.gitPath = execFileSync('where',['git'],{shell: 'cmd'}).toString();
         }
         
-        if(!fs.existsSync(this.bashPath)) {
+        if(fs.existsSync(this.gitPath)) {
+            this.bashPath = path.join(path.dirname(this.gitPath),'bash.exe');
+        } else {
             console.warn('Could not find Git-bash!');
         }
     }
@@ -90,9 +90,9 @@ export class WorkflowController {
         if (!fs.existsSync(actionPath)) {
             const uses = callingStep.uses.split('@');
             if (uses[1]) {
-                execFileSync('git', ['-c', 'advice.detachedHead=false', 'clone', '--depth', '1', '--branch', uses[1], '--single-branch', stepEnv.GITHUB_SERVER_URL + '/' + uses[0] + '.git', callingStep.uses], { stdio:'inherit',  cwd: this.workflowTmpDir, shell: true });
+                execFileSync('"' + this.gitPath + '"', ['-c', 'advice.detachedHead=false', 'clone', '--depth', '1', '--branch', uses[1], '--single-branch', stepEnv.GITHUB_SERVER_URL + '/' + uses[0] + '.git', callingStep.uses], { stdio:'inherit',  cwd: this.workflowTmpDir, shell: true });
             } else {
-                execFileSync('git', ['-c', 'advice.detachedHead=false', 'clone', '--depth', '1', '--single-branch', stepEnv.GITHUB_SERVER_URL + '/' + uses[0] + '.git', callingStep.uses], { stdio:'inherit', cwd: this.workflowTmpDir, shell: true });
+                execFileSync('"' + this.gitPath + '"', ['-c', 'advice.detachedHead=false', 'clone', '--depth', '1', '--single-branch', stepEnv.GITHUB_SERVER_URL + '/' + uses[0] + '.git', callingStep.uses], { stdio:'inherit', cwd: this.workflowTmpDir, shell: true });
             }
         }
 
