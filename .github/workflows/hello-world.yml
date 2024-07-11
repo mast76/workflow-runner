@@ -59,3 +59,11 @@ jobs:
           echo ${msg}!
           echo ${{ env.msg }} again
         shell: bash
+      - name: HW-PYTHON  
+        env: 
+          msg: 'Hello World from Python'
+        run: |
+          import os
+          print(os.environ["msg"] + "!")
+          print("${{ env.msg }} again")
+        shell: python

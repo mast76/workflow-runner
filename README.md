@@ -23,6 +23,7 @@ NodeJs, NPM, Powershell 7 (if pwsh is used by your workflows), Git (if bash is u
 
 ### Implements
 - Running of shell scripts in CMD, Powershell, and BASH
+- Python (requires Python Launcer)
 - Expressions, e.g. *${{ true || false == ( 1 < 2 ) }}*
 - Enviroment context, e.g.  *${{ env.USERNAME }}* and *%USERNAME%*
 - GitHub environment context partly, e.g. *${{ github.SERVER_URL}}* and *%GITHUB_SERVER_URL%* 
@@ -34,10 +35,9 @@ NodeJs, NPM, Powershell 7 (if pwsh is used by your workflows), Git (if bash is u
 - Conditions (if)
 
 ### Missing (but within current scope)
-- Other environment contexts (e.g. needs, inputs, matrix)
-- Python
 - Reusable workflows
 - Actions within workflow repository
+- Other environment contexts (e.g. needs, inputs, matrix)
 - NPM package
 - Functions (e.g. toJON(..))
 - Error handling (e.g. 'jobs.<job_id>.strategy.fail-fast' and 'jobs.<job_id>.continue-on-error' )
