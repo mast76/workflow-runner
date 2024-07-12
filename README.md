@@ -30,6 +30,7 @@ NodeJs, NPM, Powershell 7 (if pwsh is used by your workflows), Git (if bash is u
 - Runner environment context partly, e.g. *${{ runner.TEMP }}* and *%RUNNER_TEMP%*
 - Secrets context (encrypted file based)
 - Vars context (file based)
+- Inputs context
 - Uses / actions (external repositoy)
 - Uses / workflows (same repositoy)
 - With
@@ -39,7 +40,7 @@ NodeJs, NPM, Powershell 7 (if pwsh is used by your workflows), Git (if bash is u
 - Reusable workflows
 - Uses / actions (same repositoy)
 - Uses / workflows (external repositoy)
-- Other environment contexts (e.g. needs, inputs, matrix)
+- Other environment contexts (e.g. needs, matrix)
 - NPM package
 - Functions (e.g. toJON(..))
 - Error handling (e.g. 'jobs.<job_id>.strategy.fail-fast' and 'jobs.<job_id>.continue-on-error' )

@@ -2,7 +2,7 @@ name: reusing-example
 on: push
 jobs:
   job1:
-    uses: ./hello-world.yml
+    uses: ./.github/workflows/hello-world.yml
   job2:
-    uses: ./if-statement.yml
+    uses: ./.github/workflows/if-statement.yml
     

@@ -1,5 +1,8 @@
 name: hello-world
-on: push
+ 
+on: 
+  workflow_call:
+
 env:
   msg: 'Should not be printed'
 defaults:
