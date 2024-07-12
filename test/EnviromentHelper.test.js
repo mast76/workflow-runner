@@ -49,10 +49,12 @@ describe ('EnviromentHelper.replaceEnvVariables', () => {
         assert.equal(EnviromentHelper.replaceEnvVariables('runner.text',{RUNNER_TEXT:'runner text'}),'runner text');
     });
     test('Test vars context', ()  =>{
-        assert.equal(EnviromentHelper.replaceEnvVariables('vars.TEXT',{},{TEXT:'vars text'}),'vars text');
+        EnviromentHelper.vars = {TEXT:'vars text'};
+        assert.equal(EnviromentHelper.replaceEnvVariables('vars.TEXT',{}),'vars text');
     });
     test('Test secrets context', ()  =>{
-        assert.equal(EnviromentHelper.replaceEnvVariables('secrets.TEXT',{},{},{TEXT:'secrets text'},),'secrets text');
+        EnviromentHelper.secrets = {TEXT:'secrets text'};
+        assert.equal(EnviromentHelper.replaceEnvVariables('secrets.TEXT',{}),'secrets text');
     });
 });
 
