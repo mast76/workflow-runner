@@ -1,0 +1,8 @@
+name: reusing-example
+on: push
+jobs:
+  job1:
+    uses: ./hello-world.yml
+  job2:
+    uses: ./if-statement.yml
+    

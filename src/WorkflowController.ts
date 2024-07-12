@@ -9,8 +9,10 @@ import { ActionData } from './ActionData.js';
 import { GitHubEnv } from './GitHubEnv.js';
 import { WorkflowStep } from './WorkflowStep.js';
 import { tmpdir } from 'os';
+import { resolveRepository, resolveRepositoryDir } from './RepositoryHelper.js';
 
 export class WorkflowController {
+    currentWorkflowFile: string;
     repositoryRoot: string;
     repository: string;
     secrets: {};
@@ -36,10 +38,64 @@ export class WorkflowController {
         }
     }
 
-    constructor(repositoy: string, repositoyRoot: string, workflowTmpDir: string) {
-        this.repository = repositoy;
-        this.repositoryRoot = repositoyRoot;   
+    constructor(workflowTmpDir: string, yamlFile: string) {
+        this.currentWorkflowFile  = yamlFile;
         this.workflowTmpDir = workflowTmpDir;
+        this.repositoryRoot = resolveRepositoryDir(yamlFile)
+        this.repository = resolveRepository(this.repositoryRoot);
+    }
+
+    run(inputs?: {}) {
+        const yamlData = yaml.load(fs.readFileSync(this.currentWorkflowFile, 'utf8')) as WorkflowData;
+        
+        let globalEnv = yamlData.env;
+        if (globalEnv) {
+            globalEnv = Object.assign(process.env, globalEnv);
+        } else {
+            globalEnv = process.env;
+        }
+
+        if(inputs) {
+            const inputsEnv = Object.fromEntries(Object.keys(inputs).map((key) => ['INPUT_' + key, inputs[key]]));
+            globalEnv = Object.assign(globalEnv, inputsEnv);
+        }
+
+        globalEnv = this.injectSystemEnv(globalEnv, yamlData);
+        if(!fs.existsSync(globalEnv.GITHUB_WORKSPACE)) {
+            fs.mkdirSync(globalEnv.GITHUB_WORKSPACE, { recursive: true });
+        }
+        
+        let globalWDir = globalEnv.GITHUB_WORKSPACE;
+        if (yamlData.defaults?.run) {
+            globalWDir = yamlData.defaults.run['working-directory'] ?? globalWDir;
+        }
+        
+        let globalShell: any = yamlData.defaults?.run?.shell;
+        globalShell = new Shell(globalShell,null,globalEnv,globalWDir);
+
+        let jobs = Object.keys(yamlData.jobs).map(key => [key, yamlData.jobs[key]]);
+
+        let ready = jobs?.filter(jobStep => !jobStep[1].needs);
+
+        let readyNames: string[] = [];
+
+        while(ready && ready.length) {
+
+            ready.forEach(jobStep => {
+                readyNames.push(jobStep[0]);
+                this.handleJob(jobStep, globalShell);
+            });
+
+            jobs = jobs.filter(j => !ready.includes(j));
+
+            ready = jobs.filter(jobStep => {
+                let test = readyNames.some(r => r === jobStep[1].needs);
+                if(!test && Array.isArray(jobStep[1].needs)) {
+                    test = jobStep[1].needs?.every((need: string) => readyNames.some(r => r === need));
+                }
+                return test;
+            });
+        }
     }
     
     injectSystemEnv(globalEnv: GitHubEnv = {} as GitHubEnv, yamlData: WorkflowData) : GitHubEnv {
@@ -50,7 +106,7 @@ export class WorkflowController {
         globalEnv.GITHUB_GRAPHQL_URL = 'https://api.github.com/graphql';
         globalEnv.GITHUB_REPOSITORY = this.repository;
         globalEnv.GITHUB_SERVER_URL = 'https://github.com';
-        globalEnv.GITHUB_WORKFLOW = yamlData.name;
+        globalEnv.GITHUB_WORKFLOW = yamlData.name ?? this.currentWorkflowFile;
         globalEnv.GITHUB_WORKSPACE = path.join(this.workflowTmpDir, 'work');
         globalEnv.RUNNER_ARCH = process.arch;
         globalEnv.RUNNER_OS = 'Windows';
@@ -91,7 +147,7 @@ export class WorkflowController {
                 //console.log(stepEnv);
 
                 if (main) {
-                    spawnSync(process.argv[0], [path.join(actionPath, '/', main)], { env: stepWith, stdio: 'inherit', cwd: stepShell.wkDir });
+                    spawnSync(process.argv[0], [path.join(actionPath, main)], { env: stepWith, stdio: 'inherit', cwd: stepShell.wkDir });
                 }
             } else {
                 console.error('Action not supported!');
@@ -139,6 +195,17 @@ export class WorkflowController {
         };
     }
 
+    usesJob(job: any, jobShell: Shell) {
+        const uses = job?.uses?.trim();
+
+        if (uses && jobShell) {
+            if(uses.startsWith('.') && uses.endsWith('.yml')) {
+                let currentDir = path.dirname(this.currentWorkflowFile);
+                new WorkflowController(this.workflowTmpDir,path.join(currentDir,uses)).run(job.with);
+            }
+        }
+    }
+
     handleJob(jobStep: any[], globalShell: Shell) {
         const jobName = jobStep[0];
         const job = jobStep[1];
@@ -173,60 +240,16 @@ export class WorkflowController {
         
         jobShell = new Shell(jobShell, globalShell, jobEnv, jobWDir);
 
-        if (job['runs-on']?.toLowerCase().match('windows')) {
-            job.steps?.forEach( this.handleStep(jobShell));
+        
+        if(job.uses) {
+            this.usesJob(job, jobShell);
         } else {
-            console.warn("Skipped job '" + jobStep[0] + "' cannot run on Windows!");
+            if (job['runs-on']?.toLowerCase().match('windows')) {
+                    job.steps?.forEach( this.handleStep(jobShell));
+            } else {
+                console.warn("Skipped job '" + jobStep[0] + "' cannot run on Windows!");
+            }
         }
     
-    }
-
-    handleWorkflow(yamlData: WorkflowData) {
-        
-        let globalEnv = yamlData.env;
-        if (globalEnv) {
-            globalEnv = Object.assign(process.env, globalEnv);
-        } else {
-            globalEnv = process.env;
-        }
-
-
-        globalEnv = this.injectSystemEnv(globalEnv, yamlData);
-        if(!fs.existsSync(globalEnv.GITHUB_WORKSPACE)) {
-            fs.mkdirSync(globalEnv.GITHUB_WORKSPACE, { recursive: true });
-        }
-        
-        let globalWDir = globalEnv.GITHUB_WORKSPACE;
-        if (yamlData.defaults?.run) {
-            globalWDir = yamlData.defaults.run['working-directory'] ?? globalWDir;
-        }
-        
-        let globalShell: any = yamlData.defaults?.run?.shell;
-        globalShell = new Shell(globalShell,null,globalEnv,globalWDir);
-
-        let jobs = Object.keys(yamlData.jobs).map(key => [key, yamlData.jobs[key]]);
-
-        let ready = jobs?.filter(jobStep => !jobStep[1].needs);
-
-        let readyNames: string[] = [];
-
-        while(ready && ready.length) {
-
-            ready.forEach(jobStep => {
-                readyNames.push(jobStep[0]);
-                this.handleJob(jobStep, globalShell);
-            });
-
-            jobs = jobs.filter(j => !ready.includes(j));
-
-            ready = jobs.filter(jobStep => {
-                let test = readyNames.some(r => r === jobStep[1].needs);
-                if(!test && Array.isArray(jobStep[1].needs)) {
-                    test = jobStep[1].needs?.every((need: string) => readyNames.some(r => r === need));
-                }
-                return test;
-            });
-        }
-
     }
 }

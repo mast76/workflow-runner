@@ -21,6 +21,7 @@ export interface WorkflowData {
         steps?: WorkflowStep[];
         secrets?: any;
         if?: string;
+        uses: string;
     }];
     env?: any;
 };
