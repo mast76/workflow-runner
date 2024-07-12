@@ -78,6 +78,9 @@ export class EnviromentHelper {
             case 'github':
                 val = localEnv ? localEnv['GITHUB_' + key.toUpperCase()] : '';
                 break;
+            case 'input':
+                val = localEnv ? localEnv['INPUT_' + key] : '';
+                break;
             case 'runner':
                 val = localEnv ? localEnv['RUNNER_' + key.toUpperCase()] : '';
                 break;

@@ -1,0 +1,8 @@
+name: reusing-example
+on: push
+jobs:
+  job1:
+    uses: ./.github/workflows/hello-world.yml
+  job2:
+    uses: ./.github/workflows/if-statement.yml
+    
