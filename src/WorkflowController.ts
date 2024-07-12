@@ -11,20 +11,35 @@ import { WorkflowStep } from './WorkflowStep.js';
 import { tmpdir } from 'os';
 
 export class WorkflowController {
-    enviromentHelper = new EnviromentHelper();
-
-    workflowTmpDir: string;
     repositoryRoot: string;
     repository: string;
     secrets: {};
     vars: {};
+    workflowTmpDir: string;
+    static gitPath = '';
 
-    constructor(workflowTmpDir: string, repositoy: string, repositoyRoot: string, vars : {}, secrets : {}) {
-        this.workflowTmpDir = workflowTmpDir;
+    static {
+        this.gitPath = path.join(process.env['GIT_EXEC_PATH']??'','git.exe');
+
+        if(!fs.existsSync(this.gitPath)) {
+            this.gitPath = "C:/Program Files/Git/bin/git.exe"
+        }
+        
+        if(!fs.existsSync(this.gitPath)) {
+            this.gitPath = execFileSync('where',['git'],{shell: 'cmd'}).toString();
+        }
+        
+        if(fs.existsSync(this.gitPath)) {
+            Shell.bashPath = path.join(path.dirname(this.gitPath),'bash.exe'); 
+        } else {
+            console.warn('Could not find Git-bash!');
+        }
+    }
+
+    constructor(repositoy: string, repositoyRoot: string, workflowTmpDir: string) {
         this.repository = repositoy;
-        this.secrets = secrets;
-        this.vars = vars;
-        this.repositoryRoot = repositoyRoot;
+        this.repositoryRoot = repositoyRoot;   
+        this.workflowTmpDir = workflowTmpDir;
     }
     
     injectSystemEnv(globalEnv: GitHubEnv = {} as GitHubEnv, yamlData: WorkflowData) : GitHubEnv {
@@ -44,37 +59,14 @@ export class WorkflowController {
         return globalEnv;
     }
 
-    stepRun(step: any, jobShell?: any, stepEnv?: GitHubEnv, stepWDir?: any) {
-        const stepShell = new Shell(step.shell, jobShell.name, stepEnv);
-        let stepRun = this.enviromentHelper.replaceExpression(step.run, stepEnv, this.vars , this.secrets);
-        stepRun = stepShell.fixScript(stepRun);
-        let tmpFile = path.join(this.workflowTmpDir, step.name.replaceAll(/\s/g,'_') + stepShell.fileExt);
-        
-        fs.writeFileSync(tmpFile, stepRun);
-        tmpFile = path.relative(stepWDir, tmpFile);
-
-        let eFile = tmpFile;
-        if ('\\' !== stepShell.pathSeparator) {
-            eFile = eFile.replaceAll('\\', stepShell.pathSeparator);
-        }
-
-        try {
-            const shellExec = stepShell.name == ShellName.bash ? "C:/Program Files/Git/bin/bash.exe" : stepShell.name.toString();
-            execFileSync(eFile, { stdio: 'inherit', env: stepShell.env, cwd: stepWDir, shell: shellExec });
-        } catch (e) {
-            console.error(stepShell.name + 'script failed: ' + stepRun);
-            throw e;
-        }
-    }
-
-    stepUses(callingStep: WorkflowStep, stepEnv?: GitHubEnv, stepWDir: string = './') {
+    stepUses(callingStep: WorkflowStep, stepShell: Shell) {
         const actionPath = path.join(this.workflowTmpDir,callingStep.uses);
         if (!fs.existsSync(actionPath)) {
             const uses = callingStep.uses.split('@');
             if (uses[1]) {
-                execFileSync('git', ['-c', 'advice.detachedHead=false', 'clone', '--depth', '1', '--branch', uses[1], '--single-branch', stepEnv.GITHUB_SERVER_URL + '/' + uses[0] + '.git', callingStep.uses], { stdio:'inherit',  cwd: this.workflowTmpDir, shell: true });
+                execFileSync(WorkflowController.gitPath, ['-c', 'advice.detachedHead=false', 'clone', '--depth', '1', '--branch', uses[1], '--single-branch', stepShell.env.GITHUB_SERVER_URL + '/' + uses[0] + '.git', callingStep.uses], { stdio:'inherit',  cwd: this.workflowTmpDir, shell: false });
             } else {
-                execFileSync('git', ['-c', 'advice.detachedHead=false', 'clone', '--depth', '1', '--single-branch', stepEnv.GITHUB_SERVER_URL + '/' + uses[0] + '.git', callingStep.uses], { stdio:'inherit', cwd: this.workflowTmpDir, shell: true });
+                execFileSync(WorkflowController.gitPath, ['-c', 'advice.detachedHead=false', 'clone', '--depth', '1', '--single-branch', stepShell.env.GITHUB_SERVER_URL + '/' + uses[0] + '.git', callingStep.uses], { stdio:'inherit', cwd: this.workflowTmpDir, shell: false });
             }
         }
 
@@ -85,21 +77,21 @@ export class WorkflowController {
 
             console.info('action: ' + yamlData.name);
             if ('composite' === yamlData.runs?.using) {
-                yamlData.runs?.steps?.forEach(this.handleStep(stepWDir, stepEnv, null));
+                yamlData.runs?.steps?.forEach(this.handleStep(stepShell));
             } else if (yamlData.runs?.using?.match('node')) {
                 const main = yamlData.runs?.main;
 
                 let stepWith = callingStep.with??{}; 
-                stepWith = this.enviromentHelper.replaceExpressionInProperties(stepWith, null, this.vars, this.secrets);
+                stepWith = EnviromentHelper.replaceExpressionInProperties(stepWith, null);
                 
                 stepWith = Object.fromEntries(Object.keys(stepWith).map((key) => ['INPUT_' + key, stepWith[key]]));
                 
-                stepWith = Object.assign(stepEnv, stepWith);
+                stepWith = Object.assign(stepShell.env, stepWith);
 
                 //console.log(stepEnv);
 
                 if (main) {
-                    spawnSync(process.argv[0], [path.join(actionPath, '/', main)], { env: stepWith, stdio: 'inherit', cwd: stepWDir });
+                    spawnSync(process.argv[0], [path.join(actionPath, '/', main)], { env: stepWith, stdio: 'inherit', cwd: stepShell.wkDir });
                 }
             } else {
                 console.error('Action not supported!');
@@ -107,16 +99,16 @@ export class WorkflowController {
         }
     }
 
-    handleStep(jobWDir?: string, jobEnv?: GitHubEnv, jobShell?: any): any {
+    handleStep(jobShell?: Shell): any {
         return step => {
             console.info("Step: " + step.name);
 
             if(step.if) {
                 let test = false;
                 if(step.if.match(/\$\{\{/)) {
-                    test = this.enviromentHelper.replaceExpression(step.if, jobEnv, this.vars , this.secrets);
+                    test = EnviromentHelper.replaceExpression(step.if, jobShell.env);
                 } else {
-                    test = this.enviromentHelper.parseKey(step.if, jobEnv, this.vars , this.secrets);
+                    test = EnviromentHelper.parseKey(step.if, jobShell.env);
                 }
 
                 if (!test) {
@@ -125,27 +117,29 @@ export class WorkflowController {
                 }
             }
 
-            let stepWDir = step['working-directory'] ?? jobWDir;
+            let stepWDir = step['working-directory'];
 
-            let stepEnv = this.enviromentHelper.replaceExpressionInProperties(step.env, null, this.vars, this.secrets);
-            if (jobEnv && stepEnv) {
-                stepEnv = Object.assign(jobEnv, stepEnv);
-            } else if (jobEnv) {
-                stepEnv = jobEnv;
-            }
+            let stepEnv = EnviromentHelper.replaceExpressionInProperties(step.env, null);
+
+            const stepShell = new Shell(step.shell, jobShell, stepEnv, stepWDir, step.run);
 
             //console.log('stepEnv: ' + stepEnv.msg)
             if (step.uses) {
-                this.stepUses(step, stepEnv, stepWDir);
+                this.stepUses(step, stepShell);
             }
 
             if (step.run) {
-                this.stepRun(step, jobShell, stepEnv, stepWDir);
+                try {
+                    execFileSync(stepShell.runFile, stepShell.args, { stdio: 'inherit', env: stepShell.env, cwd: stepShell.wkDir, shell: stepShell.shellExe.toString() });
+                } catch (e) {
+                    console.error(stepShell.name + 'script failed: ' + step.run );
+                    throw e;
+                }
             }
         };
     }
 
-    handleJob(jobStep: any[], globalShell: any, globalWDir: string, globalEnv: any) {
+    handleJob(jobStep: any[], globalShell: Shell) {
         const jobName = jobStep[0];
         const job = jobStep[1];
         console.info('Job: ' + jobName);
@@ -153,9 +147,9 @@ export class WorkflowController {
         if(job.if) {
             let test = false;
             if(job.if.match(/\$\{\{/)) {
-                test = this.enviromentHelper.replaceExpression(job.if, globalEnv, this.vars, this.secrets);
+                test = EnviromentHelper.replaceExpression(job.if, globalShell.env);
             } else {
-                test = this.enviromentHelper.parseKey(job.if, globalEnv, this.vars, this.secrets);
+                test = EnviromentHelper.parseKey(job.if, globalShell.env);
             }
             
             if (!test) {
@@ -165,12 +159,7 @@ export class WorkflowController {
         }
 
         let jobShell = job.defaults?.run?.shell;
-        jobShell = new Shell(jobShell, globalShell.name);
-        let jobWDir = globalWDir;
-        
-        if (job.default?.run) {
-            jobWDir = job.default.run['working-directory'] ?? jobWDir;
-        }
+        let jobWDir = job.defaults?.run['working-directory'];
         
 
         let jobSecrets = job.secrets;
@@ -178,17 +167,14 @@ export class WorkflowController {
             jobSecrets = this.secrets;
         }
 
-        let jobEnv = this.enviromentHelper.replaceExpressionInProperties(job.env, null, this.vars, this.secrets);
-        if (jobEnv && globalEnv) {
-            jobEnv = Object.assign(globalEnv, jobEnv);
-        } else if (globalEnv) {
-            jobEnv = globalEnv;
-        }
+        let jobEnv = EnviromentHelper.replaceExpressionInProperties(job.env, null);
 
         jobEnv.GITHUB_JOB = jobName;
+        
+        jobShell = new Shell(jobShell, globalShell, jobEnv, jobWDir);
 
         if (job['runs-on']?.toLowerCase().match('windows')) {
-            job.steps?.forEach( this.handleStep(jobWDir, jobEnv, jobShell));
+            job.steps?.forEach( this.handleStep(jobShell));
         } else {
             console.warn("Skipped job '" + jobStep[0] + "' cannot run on Windows!");
         }
@@ -196,15 +182,14 @@ export class WorkflowController {
     }
 
     handleWorkflow(yamlData: WorkflowData) {
-        let globalShell: any = yamlData.defaults?.run?.shell;
-        globalShell = new Shell(globalShell);
-
+        
         let globalEnv = yamlData.env;
         if (globalEnv) {
             globalEnv = Object.assign(process.env, globalEnv);
         } else {
             globalEnv = process.env;
         }
+
 
         globalEnv = this.injectSystemEnv(globalEnv, yamlData);
         if(!fs.existsSync(globalEnv.GITHUB_WORKSPACE)) {
@@ -215,6 +200,9 @@ export class WorkflowController {
         if (yamlData.defaults?.run) {
             globalWDir = yamlData.defaults.run['working-directory'] ?? globalWDir;
         }
+        
+        let globalShell: any = yamlData.defaults?.run?.shell;
+        globalShell = new Shell(globalShell,null,globalEnv,globalWDir);
 
         let jobs = Object.keys(yamlData.jobs).map(key => [key, yamlData.jobs[key]]);
 
@@ -226,7 +214,7 @@ export class WorkflowController {
 
             ready.forEach(jobStep => {
                 readyNames.push(jobStep[0]);
-                this.handleJob(jobStep, globalShell, globalWDir, globalEnv);
+                this.handleJob(jobStep, globalShell);
             });
 
             jobs = jobs.filter(j => !ready.includes(j));

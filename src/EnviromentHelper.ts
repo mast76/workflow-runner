@@ -56,7 +56,10 @@ export enum GithubContext {
 }
 
 export class EnviromentHelper {
-    replaceEnvVariables(key : string, localEnv?: GitHubEnv, vars?: {}, secrets?: {}) : string {
+    static vars: {};
+    static secrets: {};
+
+    static replaceEnvVariables(key : string, localEnv?: GitHubEnv) : string {
         //console.log(vars);
         //console.log(secrets);
                 
@@ -79,8 +82,8 @@ export class EnviromentHelper {
                 val = localEnv ? localEnv['RUNNER_' + key.toUpperCase()] : '';
                 break;
             case 'vars':
-                if(vars) {
-                    val = vars[key];
+                if(EnviromentHelper.vars) {
+                    val = EnviromentHelper.vars[key];
                 } else {
                     console.error('Vars context was refered but not defined!');
                     val = '';
@@ -88,8 +91,8 @@ export class EnviromentHelper {
                 break
             case 'secrets':
                 //console.log(secrets);
-                if(secrets) {
-                    val = secrets[key];
+                if(EnviromentHelper.secrets) {
+                    val = EnviromentHelper.secrets[key];
                 } else {
                     console.error('Secrets context was refered but not defined!');
                     val = '';
@@ -111,7 +114,7 @@ export class EnviromentHelper {
         return val;
     }
 
-    parseKey(exp : string, localEnv : GitHubEnv, vars: {}, secrets: {}) : any {
+    static parseKey(exp : string, localEnv : GitHubEnv) : any {
         exp = exp.trim();
         const mStr1 = /('([^']|((?=')).)+?')/g;
         const env = /[a-z]+\.[a-z_\d]+/gi;
@@ -122,7 +125,7 @@ export class EnviromentHelper {
         exp = exp.replaceAll("''","\\'");
 
         exp?.match(env)?.forEach(m =>  {
-            exp = exp.replace(m, this.replaceEnvVariables(m, localEnv, vars, secrets));
+            exp = exp.replace(m, this.replaceEnvVariables(m, localEnv));
         }) 
 
         const hasQoutes = /^["'].*["']$/;
@@ -145,13 +148,13 @@ export class EnviromentHelper {
         return exp;
     }
 
-    statementMatcher = /\${{([^}]+)}}?/gs;
+    static statementMatcher = /\${{([^}]+)}}?/gs;
 
-    replaceExpression(str : string, localEnv : GitHubEnv, vars: {}, secrets: {}) : any {
+    static replaceExpression(str : string, localEnv : GitHubEnv) : any {
         
         str?.match(this.statementMatcher)?.forEach(s => {
             //console.log(s)
-            let pk = this.parseKey(s.replace(this.statementMatcher, '$1' ), localEnv, vars, secrets);
+            let pk = this.parseKey(s.replace(this.statementMatcher, '$1' ), localEnv);
             //console.log(pk)
             if(str.trim() === s) {
                 str = pk;
@@ -164,8 +167,8 @@ export class EnviromentHelper {
         return str;
     }
 
-    replaceExpressionInProperties(obj = {}, localEnv : GitHubEnv, vars: {}, secrets: {}) : any {
-        const map = Object.keys(obj).map((key) => [key, this.replaceExpression(obj[key],localEnv,vars,secrets)]);
+    static replaceExpressionInProperties(obj = {}, localEnv : GitHubEnv) : any {
+        const map = Object.keys(obj).map((key) => [key, this.replaceExpression(obj[key],localEnv)]);
         return Object.fromEntries(map);
     }
 }
