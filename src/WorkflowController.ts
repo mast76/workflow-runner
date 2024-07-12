@@ -200,8 +200,7 @@ export class WorkflowController {
 
         if (uses && jobShell) {
             if(uses.startsWith('.') && uses.endsWith('.yml')) {
-                let currentDir = path.dirname(this.currentWorkflowFile);
-                new WorkflowController(this.workflowTmpDir,path.join(currentDir,uses)).run(job.with);
+                new WorkflowController(this.workflowTmpDir,path.join(this.repositoryRoot, uses)).run(job.with);
             }
         }
     }
