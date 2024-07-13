@@ -31,7 +31,7 @@ NodeJs, NPM, Powershell 7 (if pwsh is used by your workflows), Git (if bash is u
 - Secrets context (encrypted file based)
 - Vars context (file based)
 - Inputs context
-- Uses / actions (external repositoy)
+- Uses / actions (external repository)
 - Uses / workflows
 - With
 - Conditions (if)
