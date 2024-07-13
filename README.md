@@ -37,9 +37,10 @@ NodeJs, NPM, Powershell 7 (if pwsh is used by your workflows), Git (if bash is u
 - Conditions (if)
 
 ### Missing (but within current scope)
-- Uses / actions (same repositoy)
+- Uses / actions (same repository)
+- Other environment contexts (e.g. needs, matrix)
 - NPM package
-- Output management, (needs, reusable workflows).
+- Output management (needs, reusable workflows).
 - Functions (e.g. toJON(..))
 - Other environment contexts (e.g. needs, matrix)
 - Error handling (e.g. 'jobs.<job_id>.strategy.fail-fast' and 'jobs.<job_id>.continue-on-error' )
