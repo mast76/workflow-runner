@@ -119,7 +119,7 @@ export class WorkflowController {
         const actionPath = path.join(this.workflowTmpDir,callingStep.uses);
         if (!fs.existsSync(actionPath)) {
             const uses = callingStep.uses.split('@');
-            if (uses[1]) {
+            if (uses.length === 2) {
                 execFileSync(WorkflowController.gitPath, ['-c', 'advice.detachedHead=false', 'clone', '--depth', '1', '--branch', uses[1], '--single-branch', stepShell.env.GITHUB_SERVER_URL + '/' + uses[0] + '.git', callingStep.uses], { stdio:'inherit',  cwd: this.workflowTmpDir, shell: false });
             } else {
                 execFileSync(WorkflowController.gitPath, ['-c', 'advice.detachedHead=false', 'clone', '--depth', '1', '--single-branch', stepShell.env.GITHUB_SERVER_URL + '/' + uses[0] + '.git', callingStep.uses], { stdio:'inherit', cwd: this.workflowTmpDir, shell: false });
@@ -196,11 +196,24 @@ export class WorkflowController {
     }
 
     usesJob(job: any, jobShell: Shell) {
-        const uses = job?.uses?.trim();
-
+        const uses : string = job?.uses?.trim();
         if (uses && jobShell) {
-            if(uses.startsWith('.') && uses.endsWith('.yml')) {
+            if(uses.startsWith('./') && uses.endsWith('.yml')) {
                 new WorkflowController(this.workflowTmpDir,path.join(this.repositoryRoot, uses)).run(job.with);
+            } else {
+                const wfPath = path.join(this.workflowTmpDir, uses);
+                if (!fs.existsSync(wfPath)) {
+                    const usesArray = uses.split('@');
+                    const ownerRepo = usesArray[0].match(/^([^\/]+\/[^\/]+)/)[0];
+                    const filePath = path.normalize(usesArray[0].substring(ownerRepo.length));
+                    if (usesArray.length === 2) {
+                        execFileSync(WorkflowController.gitPath, ['-c', 'advice.detachedHead=false', 'clone', '--depth', '1', '--branch', usesArray[1], '--single-branch', jobShell.env.GITHUB_SERVER_URL + '/' + ownerRepo, ownerRepo + "@" + usesArray[1]], { stdio:'inherit',  cwd: this.workflowTmpDir, shell: false });
+                        new WorkflowController(this.workflowTmpDir,path.join(this.workflowTmpDir, ownerRepo + "@" + usesArray[1], filePath)).run(job.with);
+                    } else {
+                        execFileSync(WorkflowController.gitPath, ['-c', 'advice.detachedHead=false', 'clone', '--depth', '1', '--single-branch', jobShell.env.GITHUB_SERVER_URL + '/' + ownerRepo, ownerRepo], { stdio:'inherit', cwd: this.workflowTmpDir, shell: false });
+                        new WorkflowController(this.workflowTmpDir,path.join(this.workflowTmpDir, ownerRepo, filePath)).run(job.with);
+                    }
+                }
             }
         }
     }

@@ -5,4 +5,5 @@ jobs:
     uses: ./.github/workflows/hello-world.yml
   job2:
     uses: ./.github/workflows/if-statement.yml
-    
+  job3:
+    uses: mast76/workflow-runner/.github/workflows/hello-world.yml@main
