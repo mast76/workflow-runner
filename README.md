@@ -37,8 +37,8 @@ NodeJs, NPM, Powershell 7 (if pwsh is used by your workflows), Git (if bash is u
 - Conditions (if)
 
 ### Missing (but within current scope)
-- Uses / actions (same repositoy)
-- Uses / workflows (external repositoy)
+- Uses / actions (same repository)
+- Uses / workflows (external repository)
 - Other environment contexts (e.g. needs, matrix)
 - NPM package
 - Functions (e.g. toJON(..))
