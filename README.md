@@ -32,16 +32,16 @@ NodeJs, NPM, Powershell 7 (if pwsh is used by your workflows), Git (if bash is u
 - Vars context (file based)
 - Inputs context
 - Uses / actions (external repositoy)
-- Uses / workflows (same repositoy)
+- Uses / workflows
 - With
 - Conditions (if)
 
 ### Missing (but within current scope)
 - Uses / actions (same repositoy)
-- Uses / workflows (external repositoy)
-- Other environment contexts (e.g. needs, matrix)
 - NPM package
+- Output management, (needs, reusable workflows).
 - Functions (e.g. toJON(..))
+- Other environment contexts (e.g. needs, matrix)
 - Error handling (e.g. 'jobs.<job_id>.strategy.fail-fast' and 'jobs.<job_id>.continue-on-error' )
 
 ### Thoughts
