@@ -6,8 +6,6 @@ jobs:
     steps:
       - name: Print to Log
         id: print-to-log
-        uses: actions/hello-world-javascript-action@main
+        uses: actions/hello-world-javascript-action@v1.1
         with:
-          who-to-greet: "nobody"
-      - name: Same repo
-        uses: ./.github/actions/hello-world
+          who-to-greet: "everybody"

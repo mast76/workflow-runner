@@ -5,5 +5,5 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v4
-      with: 
-        token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Say hello
+      uses: ./.github/actions/hello-world
