@@ -47,6 +47,8 @@ export class WorkflowController {
 
     run(inputs?: {}) {
         const yamlData = yaml.load(fs.readFileSync(this.currentWorkflowFile, 'utf8')) as WorkflowData;
+
+        console.info('Workflow: ' + yamlData.name + ' - start');
         
         let globalEnv = yamlData.env;
         if (globalEnv) {
@@ -96,6 +98,8 @@ export class WorkflowController {
                 return test;
             });
         }
+        
+        console.info('Workflow: ' + yamlData.name + ' - end');
     }
     
     injectSystemEnv(globalEnv: GitHubEnv = {} as GitHubEnv, yamlData: WorkflowData) : GitHubEnv {
@@ -116,41 +120,67 @@ export class WorkflowController {
     }
 
     stepUses(callingStep: WorkflowStep, stepShell: Shell) {
-        const actionPath = path.join(this.workflowTmpDir,callingStep.uses);
-        if (!fs.existsSync(actionPath)) {
-            const uses = callingStep.uses.split('@');
-            if (uses.length === 2) {
-                execFileSync(WorkflowController.gitPath, ['-c', 'advice.detachedHead=false', 'clone', '--depth', '1', '--branch', uses[1], '--single-branch', stepShell.env.GITHUB_SERVER_URL + '/' + uses[0] + '.git', callingStep.uses], { stdio:'inherit',  cwd: this.workflowTmpDir, shell: false });
+        const uses : string = callingStep.uses?.trim();
+        let actionPath: string = null;
+        if (uses && stepShell) {
+            
+            if(uses.startsWith('./')) {
+                actionPath = path.join(this.repositoryRoot,uses);
             } else {
-                execFileSync(WorkflowController.gitPath, ['-c', 'advice.detachedHead=false', 'clone', '--depth', '1', '--single-branch', stepShell.env.GITHUB_SERVER_URL + '/' + uses[0] + '.git', callingStep.uses], { stdio:'inherit', cwd: this.workflowTmpDir, shell: false });
-            }
-        }
+                actionPath = path.join(this.workflowTmpDir,uses);
 
-
-        const yamlFile = path.join(actionPath,'action.yml');
-        if (fs.existsSync(yamlFile)) {
-            const yamlData = yaml.load(fs.readFileSync(yamlFile, 'utf8')) as ActionData;
-
-            console.info('action: ' + yamlData.name);
-            if ('composite' === yamlData.runs?.using) {
-                yamlData.runs?.steps?.forEach(this.handleStep(stepShell));
-            } else if (yamlData.runs?.using?.match('node')) {
-                const main = yamlData.runs?.main;
-
-                let stepWith = callingStep.with??{}; 
-                stepWith = EnviromentHelper.replaceExpressionInProperties(stepWith, null);
-                
-                stepWith = Object.fromEntries(Object.keys(stepWith).map((key) => ['INPUT_' + key, stepWith[key]]));
-                
-                stepWith = Object.assign(stepShell.env, stepWith);
-
-                //console.log(stepEnv);
-
-                if (main) {
-                    spawnSync(process.argv[0], [path.join(actionPath, main)], { env: stepWith, stdio: 'inherit', cwd: stepShell.wkDir });
+                if (!fs.existsSync(actionPath)) {
+                    const uses = callingStep.uses.split('@');
+                    if (uses.length === 2) {
+                        execFileSync(WorkflowController.gitPath, ['-c', 'advice.detachedHead=false', 'clone', '--depth', '1', '--branch', uses[1], '--single-branch', stepShell.env.GITHUB_SERVER_URL + '/' + uses[0] + '.git', callingStep.uses], { stdio:'inherit',  cwd: this.workflowTmpDir, shell: false });
+                    } else {
+                        execFileSync(WorkflowController.gitPath, ['-c', 'advice.detachedHead=false', 'clone', '--depth', '1', '--single-branch', stepShell.env.GITHUB_SERVER_URL + '/' + uses[0] + '.git', callingStep.uses], { stdio:'inherit', cwd: this.workflowTmpDir, shell: false });
+                    }
                 }
+            }
+
+            const yamlFile = path.join(actionPath,'action.yml');
+            if (fs.existsSync(yamlFile)) {
+                const yamlData = yaml.load(fs.readFileSync(yamlFile, 'utf8')) as ActionData;
+
+                console.info('Action: ' + yamlData.name + ' - start');
+
+                if ('composite' === yamlData.runs?.using) {
+                    yamlData.runs?.steps?.forEach(this.handleStep(stepShell));
+                } else if (yamlData.runs?.using?.match('node')) {
+                    const pre_if = EnviromentHelper.replaceExpression(yamlData.runs['pre-if'], stepShell.env);
+                    const pre = yamlData.runs.pre;
+                    const main = yamlData.runs.main;
+                    const post_if = EnviromentHelper.replaceExpression(yamlData.runs['post-if'], stepShell.env);
+                    const post = yamlData.runs.post;
+
+                    let stepWith = callingStep.with??{}; 
+                    stepWith = EnviromentHelper.replaceExpressionInProperties(stepWith, null);
+                    
+                    stepWith = Object.fromEntries(Object.keys(stepWith).map((key) => ['INPUT_' + key, stepWith[key]]));
+                    
+                    stepWith = Object.assign(stepShell.env, stepWith);
+
+                    //console.log(stepEnv);
+
+                    if (pre && pre_if) {
+                        spawnSync(process.argv[0], [path.join(actionPath, pre)], { env: stepWith, stdio: 'inherit', cwd: stepShell.wkDir });
+                    }
+
+                    if (main) {
+                        spawnSync(process.argv[0], [path.join(actionPath, main)], { env: stepWith, stdio: 'inherit', cwd: stepShell.wkDir });
+                    }
+
+                    if (post && post_if) {
+                        spawnSync(process.argv[0], [path.join(actionPath, post)], { env: stepWith, stdio: 'inherit', cwd: stepShell.wkDir });
+                    }
+                } else {
+                    console.error('Action not supported!');
+                }
+                
+                console.info('Action: ' + yamlData.name + ' - end');
             } else {
-                console.error('Action not supported!');
+                console.log('Action: "' + yamlFile + '" file not found!');
             }
         }
     }

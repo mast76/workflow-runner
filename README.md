@@ -31,13 +31,12 @@ NodeJs, NPM, Powershell 7 (if pwsh is used by your workflows), Git (if bash is u
 - Secrets context (encrypted file based)
 - Vars context (file based)
 - Inputs context
-- Uses / actions (external repository)
+- Uses / actions 
 - Uses / workflows
 - With
 - Conditions (if)
 
 ### Missing (but within current scope)
-- Uses / actions (same repository)
 - Other environment contexts (e.g. needs, matrix)
 - NPM package
 - Output management (needs, reusable workflows).
