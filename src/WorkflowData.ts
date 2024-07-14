@@ -1,3 +1,7 @@
+/**
+ * Documentation:
+ * https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions
+ */
 import { WorkflowStep } from "./WorkflowStep";
 
 export interface WorkflowData {

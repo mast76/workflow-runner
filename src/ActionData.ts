@@ -1,3 +1,7 @@
+/**
+ * Documentation: 
+ * https://docs.github.com/en/actions/creating-actions/metadata-syntax-for-github-actions
+ */
 import { WorkflowStep } from "./WorkflowStep"
 
 export interface ActionData {

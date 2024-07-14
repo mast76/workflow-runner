@@ -1,0 +1,8 @@
+name: Hello, World!
+
+runs:
+  using: "composite"
+  steps:
+    - name: Say hello
+      run: Write-host "Hello World!"
+      shell: powershell
